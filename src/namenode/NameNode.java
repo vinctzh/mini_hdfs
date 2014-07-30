@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import common.LocalFileDescription;
+
 import datanode.DataNodeDescriptor;
 
 public class NameNode {
@@ -39,6 +41,19 @@ public class NameNode {
 		Long fileSize = file.length();
 		
 		INodeFile iFile = new INodeFile(fileName,replication,fileSize);
+		BlockInfo[] blocks =blockManager.allocBlocksForFile(iFile, fileSize, DEFAULT_BLOCK_SIZE, replication);
+		for (int i=0; i<blocks.length; i++) {
+			showBlockInfo(blocks[i]);
+		}
+	}
+	
+	public void addFile(LocalFileDescription file) {
+		String fileName = file.getName();
+		Long fileSize = file.getLength();
+		short replication = (short) file.getReplication();
+		
+		INodeFile iFile = new INodeFile(fileName,replication,fileSize);
+		
 		BlockInfo[] blocks =blockManager.allocBlocksForFile(iFile, fileSize, DEFAULT_BLOCK_SIZE, replication);
 		for (int i=0; i<blocks.length; i++) {
 			showBlockInfo(blocks[i]);
