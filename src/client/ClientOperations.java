@@ -46,6 +46,21 @@ public class ClientOperations {
 				
 				outStream.write((MiniHDFSConstants.ADDFILE + " "+ jsonStr).getBytes());
 				
+				// 等待NameNode分块完成，并指定好各个分块的存储器
+				while (true) {
+					len = inStream.read(buffer);
+					if (len >0) {
+						String recv = new String(buffer,0,len);
+						System.out.println(recv);
+						
+						if (recv.equals("done")) {
+							System.out.println("断开连接");
+							inStream.close();
+							socket.close();
+						}
+					}
+				}
+				
 			} catch (IOException e) {
 				e.printStackTrace();
 				return;

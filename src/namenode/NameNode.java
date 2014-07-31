@@ -14,12 +14,13 @@ public class NameNode {
 	
 	public static long DEFAULT_BLOCK_SIZE = 62914560;  // 60M
 	BlockManager blockManager;
-	public static List<String> activeDatanodeID;
+	
+	// 当前活跃的数据节点的 ID
+	public static List<String> activeDatanodeID; 	// storageID
 	// 当前活跃的数据节点<DatanodeID, DataNode>
 	public static HashMap<String, DataNodeDescriptor> activeDataNodes;
-	
-	// 失去连接的书觉节点
-	public static HashMap<String, DataNodeDescriptor> deadDataNodes;
+	// 失去连接的数据节点
+//	public static HashMap<String, DataNodeDescriptor> deadDataNodes;
 	
 	public NameNode() {
 		blockManager = new BlockManager();
@@ -47,7 +48,13 @@ public class NameNode {
 		}
 	}
 	
-	public void addFile(LocalFileDescription file) {
+	/**
+	 * 根据本地文件信息，在NameNode创建文件，指派存放嗯block的DataNode
+	 * 返回BlockInfo
+	 * @param file
+	 * @return
+	 */
+	public BlockInfo[] addFile(LocalFileDescription file) {
 		String fileName = file.getName();
 		Long fileSize = file.getLength();
 		short replication = (short) file.getReplication();
@@ -58,6 +65,42 @@ public class NameNode {
 		for (int i=0; i<blocks.length; i++) {
 			showBlockInfo(blocks[i]);
 		}
+		
+		return blocks;
+	}
+	
+	/**
+	 * 当一个DataNode连接到NameNode的时候，更新NameNode中的DataNode信息
+	 * @param dataNode
+	 */
+	public void addDataNode(DataNodeDescriptor dataNode) {
+		String nodeId = dataNode.getStorageID();
+		// DataNode已经处于在线状态
+		// 进行更新
+		if (activeDatanodeID.contains(nodeId) && activeDataNodes.containsKey(nodeId)) {
+			activeDataNodes.put(nodeId, dataNode);
+			return ;
+		}
+		// 活跃列表中不存在，检查已掉线的列表
+		// 如果存在，添加到活跃列表，删除掉线列表
+//		if (deadDataNodes.containsKey(nodeId)) {
+//			activeDataNodes.put(nodeId, dataNode);
+//			activeDatanodeID.add(nodeId);
+//			deadDataNodes.remove(nodeId);
+//		} 
+		else {
+			activeDatanodeID.add(nodeId);
+			activeDataNodes.put(nodeId, dataNode);
+		}
+		return;		
+	}
+	
+	public boolean deleteNode(String nodeID) {
+		if (activeDatanodeID.contains(nodeID) && activeDataNodes.containsKey(nodeID)) {
+			activeDataNodes.remove(nodeID);
+			return activeDatanodeID.remove(nodeID);
+		}
+		return false;
 	}
 	
 	private void testInit() {

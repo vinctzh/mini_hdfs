@@ -26,7 +26,7 @@ public class BlockManager {
 		BlockInfo blocks[] = new BlockInfo[blockNums];
 		for (int i=0; i<blockNums; i++) {
 			Set<String> targets = new HashSet<String>();
-			long blkID = rand.nextLong();
+			long blkID = Math.abs(rand.nextLong());
 			long blkSize;
 			if (i == (blockNums-1))
 				blkSize = sizeOfLastBlock;

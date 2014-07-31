@@ -1,10 +1,15 @@
 package datanode;
 
 public class DataNodeDescriptor extends DataNodeInfo {
+	public String ipAddr;
 	public DataNodeDescriptor() {}
 	
 	public DataNodeDescriptor(DataNodeID nodeID) {
 		this(nodeID, 0L, 0L);
+	}
+	
+	public DataNodeDescriptor(String storageID, String name, String ipAddr, long capacity,long used) {
+		super(storageID, name, ipAddr, capacity, used);
 	}
 	
 	public DataNodeDescriptor(String storageID, String name, long capacity,long used) {
@@ -13,6 +18,7 @@ public class DataNodeDescriptor extends DataNodeInfo {
 	
 	public DataNodeDescriptor(DataNodeID nodeID, long capacity,long used) {
 		super(nodeID,capacity,used);
+		
 	}
 
 	@Override
@@ -26,7 +32,7 @@ public class DataNodeDescriptor extends DataNodeInfo {
 				+ ", capacity=" + capacity 
 				+ ", used=" + used
 				+ ", remaining=" + remaining 
-				+  ", infoPort=" + infoPort
+				+  ", infoPort=" + blkPort
 				+ ", ipcport=" + ipcport + "]";
 	}
 	

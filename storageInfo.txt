@@ -1,0 +1,1 @@
+{"storageID":"ST001","name":"Centvin","capacity":1024000,"used":51200}

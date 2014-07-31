@@ -9,6 +9,13 @@ public class DataNodeInfo extends DataNodeID {
 		
 	}
 	
+	public DataNodeInfo(String storageID, String name,String ipAddr, long capacity, long used) {
+		super(storageID, name, ipAddr);
+		this.capacity = capacity;
+		this.used = used;
+		this.remaining = capacity - used;
+	}
+	
 	public DataNodeInfo(String storageID, String name,long capacity, long used) {
 		super(storageID, name);
 		this.capacity = capacity;
