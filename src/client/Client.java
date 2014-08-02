@@ -7,7 +7,8 @@ import common.MiniHDFSConstants;
 
 public class Client {
 	
-	
+	public static final String CLIENT_ROOT = "/home/jianyuan/";
+	public static final String CLIENT_CACHE = "/home/jianyuan/cache/";
 
 	public static void main(String[] args) {
 		ClientOperations operations = new ClientOperations();

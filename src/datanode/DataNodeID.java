@@ -25,7 +25,7 @@ public class DataNodeID {
 	public DataNodeID(String storageID, String name) {
 		this.name = name;
 		this.storageID = storageID;
-		this.ipAddr = "127.0.0.1";
+		this.ipAddr = null;
 		this.blkPort = 0;
 		this.ipcport = 0;
 	}

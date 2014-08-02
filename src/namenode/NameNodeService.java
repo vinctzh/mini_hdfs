@@ -55,8 +55,10 @@ public class NameNodeService {
 						Socket socket = serverSocket.accept();
 						
 						new DNConnectionHandler(socket).start();
-						if (MiniHDFSConstants.doDebug)
+						if (MiniHDFSConstants.doDebug) {
 							System.out.println("A new connection with DataNode is established:" + socket.toString());
+							System.out.println("ip:" + socket.getLocalAddress().getHostAddress());
+						}
 						
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -81,8 +83,7 @@ public class NameNodeService {
 			try {
 				InputStream inStream = socket.getInputStream();	
 				OutputStream outStream = socket.getOutputStream();
-				
-				String ip = new String(socket.getInetAddress().getAddress());
+				String ip = socket.getLocalAddress().getHostAddress();
 				int port = socket.getPort();
 				outStream.write("Hello DataNode!".getBytes());
 				
@@ -111,6 +112,7 @@ public class NameNodeService {
 								dataNodeInfo.getLong("used"));
 						dnDescriptor.setIpAddr(ip);
 						dnDescriptor.setIpcport(port);
+						dnDescriptor.setBlkPort(dataNodeInfo.getInt("blkPort"));
 						
 						nameNode.addDataNode(dnDescriptor);
 						nameNode.showActiveDataNodes();
@@ -204,7 +206,11 @@ public class NameNodeService {
 						LocalFileDescription locaFile = getLocalFileData(recvMsg.substring(3).trim());
 						BlockInfo[] blocks = nameNode.addFile(locaFile);
 						JSONObject jsonInfo = blkInfoToJsonData(blocks, locaFile.getReplication());
-						outStream.write(jsonInfo.toString().getBytes());
+						outStream.write(("locatedBlks "+ jsonInfo.toString()).getBytes());
+						outStream.flush();
+					}
+					if (recvMsg.equals("received")) {
+						outStream.write("done".getBytes());
 					}
 				}
 			} catch (IOException e) {
@@ -213,7 +219,7 @@ public class NameNodeService {
 			}
 		}
 	}
-	public JSONObject blkInfoToJsonData(BlockInfo[] blocks, int replication) {
+	public static JSONObject blkInfoToJsonData(BlockInfo[] blocks, int replication) {
 		int blkNums = blocks.length;
 		
 		JSONObject blocksJson = new JSONObject();
@@ -234,9 +240,9 @@ public class NameNodeService {
 			JSONArray targets = new JSONArray();
 			for (int j=0; j<replication; j++) {
 				JSONObject target = new JSONObject();
-				target.put("storageId", blocks[i].getDataNode(i).getStorageID());
-				target.put("ipaddr", blocks[i].getDataNode(i).getIpAddr());
-				target.put("blkPort", blocks[i].getDataNode(i).getBlkPort());
+				target.put("storageId", blocks[i].getDataNode(j).getStorageID());
+				target.put("ipaddr", blocks[i].getDataNode(j).getIpAddr());
+				target.put("blkPort", blocks[i].getDataNode(j).getBlkPort());
 				targets.add(target);
 			}
 			curBlock.put("targets", targets);

@@ -17,5 +17,9 @@ public class MiniHDFSConstants {
 	// DataNode 
 	public static final int DN_BLK_RECEIVER_PORT = 8807;
 	public static final int DN_BLK_SENDER_PORT = 8808;
+	public static final String DEFAULT_DN_DIR = "/home/jianyuan/storage/";
+	
+	// Client
+	public static final int CLIENT_BLK_ACK_PORT = 9222;
 	
 }
