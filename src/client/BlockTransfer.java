@@ -50,6 +50,7 @@ public class BlockTransfer {
 			blkID = locatedBlock.getString("blockId");
 			targets = locatedBlock.getJSONArray("targets");
 			int curIndex = locatedBlock.getInt("curIndex");
+			System.err.println("当前包"+blkID+"第"+curIndex+"个副本");
 			targetDN = targets.getJSONObject(curIndex);
 		}
 		
@@ -81,11 +82,13 @@ public class BlockTransfer {
 							FileInputStream fins = new FileInputStream(blkPath);
 							
 							int data;
+							int count = 0;
 							while (-1 != (data = fins.read()))
 							{
+								count ++;
 								outStream.write(data);
 							}
-							System.out.println("==send done==");
+							System.out.println("==send done==" + count);
 							fins.close();
 							inStream.close();
 							outStream.close();

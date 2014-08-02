@@ -205,9 +205,18 @@ public class NameNodeService {
 					if (recvMsg.startsWith(MiniHDFSConstants.ADDFILE)) {
 						LocalFileDescription locaFile = getLocalFileData(recvMsg.substring(3).trim());
 						BlockInfo[] blocks = nameNode.addFile(locaFile);
-						JSONObject jsonInfo = blkInfoToJsonData(blocks, locaFile.getReplication());
-						outStream.write(("locatedBlks "+ jsonInfo.toString()).getBytes());
-						outStream.flush();
+						if (blocks == null) {
+							JSONObject jsoninfo = new JSONObject();
+							jsoninfo.put("filename", locaFile.getName());
+							jsoninfo.put("blockNum", 0);
+							outStream.write(("locatedBlks "+ jsoninfo.toString()).getBytes());
+							outStream.flush();
+						} else {
+							JSONObject jsonInfo = blkInfoToJsonData(blocks, locaFile.getReplication());
+							outStream.write(("locatedBlks "+ jsonInfo.toString()).getBytes());
+							outStream.flush();
+						}
+						
 					}
 					
 					if (recvMsg.startsWith("commitFile")) {

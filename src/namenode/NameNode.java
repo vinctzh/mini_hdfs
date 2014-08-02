@@ -61,6 +61,11 @@ public class NameNode {
 	 */
 	public BlockInfo[] addFile(LocalFileDescription file) {
 		String fileName = file.getName();
+		
+		if (existFile(fileName)) {
+			
+			return null;
+		}
 		Long fileSize = file.getLength();
 		short replication = (short) file.getReplication();
 		
@@ -80,6 +85,13 @@ public class NameNode {
 		return blocks;
 	}
 	
+	private boolean existFile(String fileName) {
+		if (files.containsKey(fileName))
+			return true;
+		if (filesUnderConstruction.containsKey(fileName))
+			return true;
+		return false;
+	}
 	
 	
 	public boolean commitFileConstruction(String filename) {
@@ -107,10 +119,10 @@ public class NameNode {
 		File filesLog = new File(NAMENODE_ROOT + "files.log");
 		File filesUCLog = new File(NAMENODE_ROOT + "filesUC.log");
 		if (filesLog.isFile() && filesLog.exists()) {
-			filesLog.renameTo(new File(NAMENODE_ROOT + fileBakName));
+			filesLog.renameTo(new File(NAMENODE_ROOT +"/logBackup/" + fileBakName));
 		}
 		if (filesUCLog.isFile() && filesUCLog.exists()) {
-			filesUCLog.renameTo(new File(NAMENODE_ROOT + filesUcBakName));
+			filesUCLog.renameTo(new File(NAMENODE_ROOT  + "/logBackup/" + filesUcBakName));
 		}
 		
 		// 将内存中的log写到本地
@@ -169,7 +181,7 @@ public class NameNode {
 				filesUnderConstruction = new HashMap<String, INodeFileUnderConstruction>();
 			} else {
 				filesUnderConstruction = new HashMap<String, INodeFileUnderConstruction>();
-				JSONArray filesUCArray = filesUCLogJSON.getJSONArray("files");
+				JSONArray filesUCArray = filesUCLogJSON.getJSONArray("filesUC");
 				int filesCount = filesUCArray.size();
 				for (int i=0; i < filesCount; i++) {
 					String fileName = filesUCArray.getJSONObject(i).getString("filename");

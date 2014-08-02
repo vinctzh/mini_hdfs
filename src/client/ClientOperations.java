@@ -37,8 +37,6 @@ public class ClientOperations {
 			return;
 		
 		JSONObject block = blocks.getJSONObject(blkIndex);
-//		blksinfo.put("clientAddr", localHost);
-//		blksinfo.put("blkAckPort", MiniHDFSConstants.CLIENT_BLK_ACK_PORT);
 	
 		block.put("clientAddr", blksInfo.getString("clientAddr"));
 		block.put("blkAckPort", blksInfo.getInt("blkAckPort"));
@@ -205,7 +203,7 @@ public class ClientOperations {
 				System.out.println(new String(buffer, 0,len ));
 				File file = new File(localFilePath);
 				// TODO 这里存入了replication数量
-				LocalFileDescription localFile = new LocalFileDescription(file,1);
+				LocalFileDescription localFile = new LocalFileDescription(file,2);
 				System.out.println("localFile: "+localFile.toString());
 				JSONObject locaFileJSON = new JSONObject();
 				locaFileJSON.put("name", localFile.getName());
@@ -231,17 +229,23 @@ public class ClientOperations {
 							System.out.println(recv);
 							String recvData = recv.substring("locatedBlks".length()).trim();
 							JSONObject blksInfo = JSONObject.fromObject(recvData);
-							// 将文件分成多个分块
-							if ( LocalFileSeperator.seperateFile(localFilePath, blksInfo) ) {
-								FileHelper.saveStringIntoFile(Client.CLIENT_CACHE + localFile.getName() + ".blksinfo", recvData);
+							int blkNums = blksInfo.getInt("blockNum");
+							// 文件创建失败
+							if (blkNums <1) {
+								System.err.println("-->文件创建失败！！");
+								break;
 							} else {
-								System.err.println("文件分块失败！");
+								// 将文件分成多个分块
+								if ( LocalFileSeperator.seperateFile(localFilePath, blksInfo) ) {
+									FileHelper.saveStringIntoFile(Client.CLIENT_CACHE + localFile.getName() + ".blksinfo", recvData);
+								} else {
+									System.err.println("文件分块失败！");
+								}
+								outStream.write("received".getBytes());
+								DistributeFileThread distributeFileThread = new DistributeFileThread(Client.CLIENT_CACHE + localFile.getName() + ".blksinfo");
+								distributeFileThread.distributeFile();
+								new BlockACKThread(distributeFileThread).start();
 							}
-							outStream.write("received".getBytes());
-							DistributeFileThread distributeFileThread = new DistributeFileThread(Client.CLIENT_CACHE + localFile.getName() + ".blksinfo");
-							distributeFileThread.distributeFile();
-							new BlockACKThread(distributeFileThread).start();
-							
 						}
 					}
 				}

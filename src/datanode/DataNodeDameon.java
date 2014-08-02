@@ -139,11 +139,14 @@ public class DataNodeDameon {
 						String blkPath = dataNode.getStorageDir() + blkId + ".meta";
 						FileOutputStream fos = new FileOutputStream(blkPath);
 						int data;
+						int count = 0;
 						while ( -1 != (data =inputStream.read()))
 						{
+//							System.out.println(data);
 							fos.write( data );
+							count++;
 						}
-						System.out.println("\nFile has been recerved successfully.");
+						System.out.println("\nFile has been recerved successfully." + count);
 
 						fos.close();
 						outputStream.write("done".getBytes());
@@ -161,29 +164,33 @@ public class DataNodeDameon {
 						int replication = blkInfo.getInt("replication");
 						// 这个节点不是最后一个节点
 						if (curIndex < (replication-1)) {	// curIndex从0开始计数
-							blkInfo.put("curIndex", curIndex++);
+							blkInfo.put("curIndex", curIndex+1);
 							System.out.println("向" + (curIndex+1) + "的数据节点发包");
+							System.out.println(""+blkInfo.getInt("curIndex"));
 							BlockTransfer blkTransfer = new BlockTransfer(blkInfo);
 							blkTransfer.sendBlock();
+						} else {
+							System.out.println("最后一个replication了：" + curIndex);
+							// 最后一个节点，向Client 发送ack数据
+							String client = blkInfo.getString("clientAddr");
+							int ackPort = blkInfo.getInt("blkAckPort");
+							int curBlkIndex = blkInfo.getInt("blkIndex");
+							Socket socket = new Socket();
+							socket.connect(new InetSocketAddress(client, ackPort));
+							
+							OutputStream oStream = socket.getOutputStream();
+							JSONObject json = new JSONObject();
+							json.put("ackBlockNum", curBlkIndex);
+							oStream.write(json.toString().getBytes());
+							
+							oStream.flush();
+							oStream.close();
+							socket.close();
 						}
-						System.out.println("最后一个replication了：" + curIndex);
-						// 最后一个节点，向Client 发送ack数据
-						String client = blkInfo.getString("clientAddr");
-						int ackPort = blkInfo.getInt("blkAckPort");
-						int curBlkIndex = blkInfo.getInt("blkIndex");
-						Socket socket = new Socket();
-						socket.connect(new InetSocketAddress(client, ackPort));
 						
-						OutputStream oStream = socket.getOutputStream();
-						JSONObject json = new JSONObject();
-						json.put("ackBlockNum", curBlkIndex);
-						oStream.write(json.toString().getBytes());
-						
-						oStream.flush();
-						oStream.close();
-						socket.close();
 					}
 				}
+				System.out.println("循环结束");
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -221,7 +228,7 @@ public class DataNodeDameon {
 				
 				while (true) {
 					try {
-						System.out.println("Heartbeats");
+//						System.out.println("Heartbeats");
 						sleep(5000);
 						outStream.write("This is a heart beat information!".getBytes());
 					} catch (InterruptedException e) {
