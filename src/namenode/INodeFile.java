@@ -1,27 +1,29 @@
 package namenode;
 
+import java.util.Arrays;
+
 public class INodeFile extends INode {
 	
 	short replication;
 	
-	long blockSize;
+	long fileSize;
 	
 	public INodeFile(){
 		super(null, 0L, 0L);
 		this.replication = 0;
-		this.blockSize = 1024L;
+		this.fileSize = 1024L;
 	}
 	
-	public INodeFile(String filename, short replication, long blockSize) {
+	public INodeFile(String filename, short replication, long fileSize) {
 		super(filename, 0L, 0L);
 		this.replication = replication;
-		this.blockSize = blockSize;
+		this.fileSize = fileSize;
 	}
 	
-	public INodeFile(String filename, long mTime, long acTime, short replication, long blockSize){
+	public INodeFile(String filename, long mTime, long acTime, short replication, long fileSize){
 		super(filename, mTime, acTime);
 		this.replication = replication;
-		this.blockSize = blockSize;
+		this.fileSize = fileSize;
 	}
 	
 	public boolean isUnderConstruction() {
@@ -36,11 +38,20 @@ public class INodeFile extends INode {
 		this.replication = replication;
 	}
 
-	public long getBlockSize() {
-		return blockSize;
+	
+	public long getFileSize() {
+		return fileSize;
 	}
 
-	public void setBlockSize(long blockSize) {
-		this.blockSize = blockSize;
+	public void setFileSize(long fileSize) {
+		this.fileSize = fileSize;
+	}
+
+	@Override
+	public String toString() {
+		return "INodeFile [replication=" + replication + ", fileSize="
+				+ fileSize + ", name=" + new String(name)
+				+ ", modificationTime=" + modificationTime + ", accessTime="
+				+ accessTime + "]";
 	}
 }

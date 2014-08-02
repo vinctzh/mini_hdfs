@@ -167,7 +167,7 @@ public class DataNodeDameon {
 							blkTransfer.sendBlock();
 						}
 						System.out.println("最后一个replication了：" + curIndex);
-						// 最后一个节点，向前一个法ack数据
+						// 最后一个节点，向Client 发送ack数据
 						String client = blkInfo.getString("clientAddr");
 						int ackPort = blkInfo.getInt("blkAckPort");
 						int curBlkIndex = blkInfo.getInt("blkIndex");

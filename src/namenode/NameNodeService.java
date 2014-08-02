@@ -209,6 +209,12 @@ public class NameNodeService {
 						outStream.write(("locatedBlks "+ jsonInfo.toString()).getBytes());
 						outStream.flush();
 					}
+					
+					if (recvMsg.startsWith("commitFile")) {
+						String fileName = recvMsg.substring("commitFile".length()).trim();
+						nameNode.commitFileConstruction(fileName);
+						outStream.write("done".getBytes());
+					}
 					if (recvMsg.equals("received")) {
 						outStream.write("done".getBytes());
 					}

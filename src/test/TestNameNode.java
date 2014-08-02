@@ -9,7 +9,6 @@ public class TestNameNode {
 		NameNode nameNode = new NameNode();
 		nameNode.showActiveDataNodes();
 		System.out.println("=======");
-		nameNode.addFile("test.txt");
 	}
 
 }

@@ -5,16 +5,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.ObjectOutputStream.PutField;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-import namenode.NameNode;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+
 import common.FileHelper;
 import common.LocalFileDescription;
 import common.LocalFileSeperator;
@@ -26,6 +25,9 @@ public class ClientOperations {
 		new AddNewFile(localFilePath).start();
 	}
 	
+	public void commitFile(final String fileName) {
+		new CommitFileThread(fileName).start();
+	}
 	public void sendBlocks(JSONObject blksInfo, int blkIndex) {
 		System.out.println("->>发送第"+blkIndex+"个数据块");		
 		int blkNums = blksInfo.getInt("blockNum");
@@ -98,6 +100,7 @@ public class ClientOperations {
 				if (sentBlockNum >= blkNums) {
 					// 清空本地缓存
 					System.out.println("所有包都发送完成，现在清空本地缓存！");
+					commitFile(blksinfo.getString("filename"));
 					File blkInfosLocal = new File(blkInfosFilePath);
 					if (blkInfosLocal.isFile() && blkInfosLocal.exists())
 						blkInfosLocal.delete();
@@ -109,6 +112,7 @@ public class ClientOperations {
 							tmp.delete();
 					}
 					System.out.println("清空本地缓存完成！");
+					
 					return;
 				}
 					
@@ -171,9 +175,6 @@ public class ClientOperations {
 							int ackBlkNum = json.getInt("ackBlockNum");
 							distributeFileThread.setSentBlockNum(ackBlkNum+1);
 							distributeFileThread.distributeFile();
-//							DistributeFileThread distributeFileThread = new DistributeFileThread(filepath,ackBlkNum+1);
-//							new BlockACKThread(distributeFileThread).start();
-//							distributeFileThread.distributeFile();
 							inputStream.close();
 							socket.close();
 						}
@@ -258,6 +259,51 @@ public class ClientOperations {
 			return client;
 		}
 		
-		
 	}
+	public class CommitFileThread extends Thread {
+		String fileName;
+		public CommitFileThread(String fileName) {
+			this.fileName = fileName;
+		}
+		public void run() {
+			// TODO Auto-generated method stub
+			try {
+				Socket socket = connect();
+				OutputStream outStream = socket.getOutputStream();
+				InputStream inputStream = socket.getInputStream();
+				byte buffer[] = new byte[1024];
+				int len;
+				while (true) {
+					len = inputStream.read(buffer);
+					if (len <= 0) {
+						System.out.println("结束");
+						break;
+					} else  {
+						String recv = new String(buffer, 0, len);
+						if (recv.equals("Welcome !")) {
+							outStream.write(("commitFile "+ fileName).getBytes());	
+						}
+						if (recv.equals("done")) {
+							System.out.println("结束");
+							outStream.close();
+							inputStream.close();
+							socket.close();
+							break;
+						}
+					}
+				
+				}
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		Socket connect() throws IOException {
+			Socket client = new Socket(); 
+			client.connect(new InetSocketAddress(MiniHDFSConstants.SERVER, MiniHDFSConstants.SERVER_PORT4CLIENT));
+			return client;
+		}
+		
+	};
 }

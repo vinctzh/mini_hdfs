@@ -2,15 +2,19 @@ package common;
 
 import java.io.File;
 
+import namenode.NameNode;
+
 public class LocalFileDescription {
 	
 	String name;
 	String localPath;
 	long length;
 	int replication;
+	long blockSize;
+	
 	
 	public LocalFileDescription() {
-		// TODO Auto-generated constructor stub
+		this.blockSize = NameNode.DEFAULT_BLOCK_SIZE;
 	}
 	
 	
@@ -19,6 +23,7 @@ public class LocalFileDescription {
 		this.localPath = localPath;
 		this.length = length;
 		this.replication = replication;
+		this.blockSize = NameNode.DEFAULT_BLOCK_SIZE;
 	}
 	
 	public LocalFileDescription(File file){
@@ -26,6 +31,7 @@ public class LocalFileDescription {
 		this.localPath = file.getPath();
 		this.length = file.length();
 		this.replication = 1;
+		this.blockSize = NameNode.DEFAULT_BLOCK_SIZE;
 	}
 	
 	public LocalFileDescription(File file, int replication){
@@ -33,6 +39,7 @@ public class LocalFileDescription {
 		this.localPath = file.getPath();
 		this.length = file.length();
 		this.replication = replication;
+		this.blockSize = NameNode.DEFAULT_BLOCK_SIZE;
 	}
 
 
@@ -63,5 +70,15 @@ public class LocalFileDescription {
 
 	public void setReplication(int replication) {
 		this.replication = replication;
+	}
+
+
+	public long getBlockSize() {
+		return blockSize;
+	}
+
+
+	public void setBlockSize(long blockSize) {
+		this.blockSize = blockSize;
 	}
 }
