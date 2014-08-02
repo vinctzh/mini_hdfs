@@ -110,6 +110,56 @@ public class ClientOperations {
 		}
 	}
 	
+	public void copyFile(String filename) {
+		JSONObject locatedFiles = new JSONObject();
+		try {
+			Socket client = new Socket(); 
+			client.connect(new InetSocketAddress(MiniHDFSConstants.SERVER, MiniHDFSConstants.SERVER_PORT4CLIENT));
+			OutputStream outStream = client.getOutputStream();
+			InputStream inputStream = client.getInputStream();
+			
+			
+			int len;
+			while (true) {
+				byte buffer[] = new byte[1024];
+				len = inputStream.read(buffer);
+				System.out.println(new String(buffer,0,len));
+
+				if (len <= 0) {
+					inputStream.close();
+					outStream.close();
+					client.close();
+					System.out.println("结束");
+					break;
+				} else  {
+					String recv = new String(buffer, 0, len);
+					if (recv.equals("Welcome !")) {
+						outStream.write((MiniHDFSConstants.COPYFILE + " " + filename).getBytes());	
+					}
+					// 返回的文件信息
+					if (recv.startsWith("StoredFiles")) {
+						String storedFilesJSONString = recv.substring("StoredFiles".length()).trim();
+						locatedFiles = JSONObject.fromObject(storedFilesJSONString);
+						outStream.write("received".getBytes());
+					}
+					
+					if (recv.equals("done")) {
+						System.out.println("结束");
+						outStream.close();
+						inputStream.close();
+						client.close();
+						break;
+					}
+				}
+			}
+			
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	public void addFile(String localFilePath) {
 		new AddNewFile(localFilePath).start();
 		return;
@@ -118,6 +168,7 @@ public class ClientOperations {
 	public void commitFile(final String fileName) {
 		new CommitFileThread(fileName).start();
 	}
+	
 	public void sendBlocks(JSONObject blksInfo, int blkIndex) {
 		System.out.println("->>发送第"+blkIndex+"个数据块");		
 		int blkNums = blksInfo.getInt("blockNum");
@@ -138,7 +189,6 @@ public class ClientOperations {
 		blockTransfer.sendBlock();
 	}
 	
-
 	public class DistributeFileThread extends Thread {
 		String blkInfosFilePath;
 		int sentBlockNum;
@@ -275,6 +325,9 @@ public class ClientOperations {
 			}
 		}
 	}
+	
+	
+	
 	public class AddNewFile extends Thread {
 		
 		private String localFilePath;

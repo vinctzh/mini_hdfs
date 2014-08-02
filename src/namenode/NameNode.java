@@ -88,6 +88,66 @@ public class NameNode {
 		return blocks;
 	}
 	
+	public JSONObject copyFile(String fileName) {
+		//ÎÄ¼þ´æÔÚ
+		JSONObject locatedFile = new JSONObject();
+		
+		if (files.containsKey(fileName)) {
+			JSONObject fileDetail = getFileDetail(fileName);
+			int blockNums = fileDetail.getInt("blockNum");
+			String fName = fileDetail.getString("filename");
+			int replication = fileDetail.getInt("replication");
+			
+			JSONArray blocks = fileDetail.getJSONArray("blocks");
+			JSONArray newBlocks = new JSONArray();
+			if (blocks.size() != blockNums) {
+				return new JSONObject();
+			}
+			int blkCount =  blocks.size();
+			for (int i=0; i < blkCount ; i++) {
+				JSONObject block = blocks.getJSONObject(i);
+				JSONArray targets = block.getJSONArray("targets");
+				JSONArray activeTargets = new JSONArray();
+				JSONArray deadTargets = new JSONArray();
+				for (int j=0; j < targets.size(); j++) {
+					JSONObject target = targets.getJSONObject(j);
+					if (activeDatanodeID.contains(target.getString("storageId"))) {
+						activeTargets.add(target);
+					} else {
+						deadTargets.add(target);
+					}
+					block.remove("targets");
+					block.put("activeTargets", activeTargets);
+					block.put("deadTargets", deadTargets);
+				}
+				newBlocks.add(block);
+			}
+			locatedFile.put("filename", fName);
+			locatedFile.put("blockNum", blockNums);
+			locatedFile.put("replication", replication);
+			locatedFile.put("blocks", newBlocks);
+		} else {
+			return new JSONObject();
+		}
+		
+		return locatedFile;
+	}
+	
+	private JSONObject getFileDetail(String fileName) {
+		JSONObject fileDetail = new JSONObject();
+		String detailPath = NAMENODE_ROOT + "/details/" + fileName + ".detail";
+		try {
+			String fileDetailStr = FileHelper.loadFileIntoString(detailPath, "UTF-8");
+			fileDetail = JSONObject.fromObject(fileDetail);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return fileDetail;
+	}
 	private boolean existFile(String fileName) {
 		if (files.containsKey(fileName))
 			return true;

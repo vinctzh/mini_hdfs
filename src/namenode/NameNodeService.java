@@ -233,6 +233,11 @@ public class NameNodeService {
 
 					}
 					
+					// обтьнд╪Ч
+					if (recvMsg.startsWith(MiniHDFSConstants.COPYFILE)) {
+						String fileName = recvMsg.substring(MiniHDFSConstants.COPYFILE.length()).trim();
+					}
+					
 					if (recvMsg.equals("received")) {
 						outStream.write("done".getBytes());
 					}
