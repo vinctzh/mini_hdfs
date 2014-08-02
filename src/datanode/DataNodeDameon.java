@@ -1,5 +1,6 @@
 package datanode;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -142,7 +143,6 @@ public class DataNodeDameon {
 						int count = 0;
 						while ( -1 != (data =inputStream.read()))
 						{
-//							System.out.println(data);
 							fos.write( data );
 							count++;
 						}
@@ -188,6 +188,26 @@ public class DataNodeDameon {
 							socket.close();
 						}
 						
+					}
+					
+					if (recvStr.startsWith("pullBlock")) {
+						String blockID = recvStr.substring("pullBlock".length()).trim();
+						String blkPath = dataNode.getStorageDir() + blockID + ".meta";
+						
+						FileInputStream fins = new FileInputStream(blkPath);
+						
+						int data;
+						int count = 0;
+						while (-1 != (data = fins.read()))
+						{
+							count ++;
+							outputStream.write(data);
+						}
+						System.out.println("==send done==" + count);
+						fins.close();
+						inputStream.close();
+						outputStream.close();
+						break;
 					}
 				}
 				System.out.println("Ñ­»·½áÊø");

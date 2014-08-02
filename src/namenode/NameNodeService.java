@@ -65,7 +65,6 @@ public class NameNodeService {
 					}
 				}
 				
-				
 			}
 		}
 	}
@@ -236,6 +235,8 @@ public class NameNodeService {
 					// обтьнд╪Ч
 					if (recvMsg.startsWith(MiniHDFSConstants.COPYFILE)) {
 						String fileName = recvMsg.substring(MiniHDFSConstants.COPYFILE.length()).trim();
+						JSONObject locatedFiles  = nameNode.copyFile(fileName);
+						outStream.write(("locatedFiles "+ locatedFiles.toString()).getBytes());
 					}
 					
 					if (recvMsg.equals("received")) {

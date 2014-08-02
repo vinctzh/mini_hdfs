@@ -9,6 +9,7 @@ public class Client {
 	
 	public static final String CLIENT_ROOT = "/home/jianyuan/";
 	public static final String CLIENT_CACHE = "/home/jianyuan/cache/";
+	public static final String CLIENT_DOWNLOAD = "/home/jianyuan/fromHDFS/";
 
 	public static void main(String[] args) {
 		ClientOperations operations = new ClientOperations();
@@ -35,6 +36,8 @@ public class Client {
 				System.out.println("请输入要拷贝到本地的文件名：");
 				String filename  = sc.next();
 				System.out.println("正在为您拷贝HDFS上的文件"+filename);
+				operations.copyFile(filename);
+				System.out.println("已经完成拷贝"+filename);
 			} else {
 				System.out.println(opt + "不是合法命令");
 			}

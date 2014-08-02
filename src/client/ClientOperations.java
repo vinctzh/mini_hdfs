@@ -2,6 +2,7 @@ package client;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,6 +15,7 @@ import java.net.UnknownHostException;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import common.FileHelper;
+import common.LocalBlocksCombine;
 import common.LocalFileDescription;
 import common.LocalFileSeperator;
 import common.MiniHDFSConstants;
@@ -28,7 +30,6 @@ public class ClientOperations {
 			client.connect(new InetSocketAddress(MiniHDFSConstants.SERVER, MiniHDFSConstants.SERVER_PORT4CLIENT));
 			OutputStream outStream = client.getOutputStream();
 			InputStream inputStream = client.getInputStream();
-			
 			
 			int len;
 			while (true) {
@@ -62,7 +63,6 @@ public class ClientOperations {
 						break;
 					}
 				}
-			
 			}
 			
 			
@@ -110,6 +110,24 @@ public class ClientOperations {
 		}
 	}
 	
+	private boolean canCopy(JSONObject locatedFiles) {
+		if (locatedFiles == null) 
+			return false;
+		
+		JSONArray blocks = locatedFiles.getJSONArray("blocks");
+		if (blocks.size() < 1) 
+			return false;
+		
+		for (int i=0;i<blocks.size();i++) {
+			JSONObject block = blocks.getJSONObject(i);
+			JSONArray activeTargets = block.getJSONArray("activeTargets");
+			if (activeTargets.isEmpty())
+				return false;
+		}
+		
+		return true;
+	}
+	
 	public void copyFile(String filename) {
 		JSONObject locatedFiles = new JSONObject();
 		try {
@@ -117,7 +135,6 @@ public class ClientOperations {
 			client.connect(new InetSocketAddress(MiniHDFSConstants.SERVER, MiniHDFSConstants.SERVER_PORT4CLIENT));
 			OutputStream outStream = client.getOutputStream();
 			InputStream inputStream = client.getInputStream();
-			
 			
 			int len;
 			while (true) {
@@ -137,9 +154,10 @@ public class ClientOperations {
 						outStream.write((MiniHDFSConstants.COPYFILE + " " + filename).getBytes());	
 					}
 					// 返回的文件信息
-					if (recv.startsWith("StoredFiles")) {
-						String storedFilesJSONString = recv.substring("StoredFiles".length()).trim();
+					if (recv.startsWith("locatedFiles")) {
+						String storedFilesJSONString = recv.substring("locatedFiles".length()).trim();
 						locatedFiles = JSONObject.fromObject(storedFilesJSONString);
+						System.out.println(storedFilesJSONString);
 						outStream.write("received".getBytes());
 					}
 					
@@ -152,7 +170,12 @@ public class ClientOperations {
 					}
 				}
 			}
-			
+			if (canCopy(locatedFiles)) {
+				PullBlocksFromDataNodes pullBlocksFromDataNodes = new PullBlocksFromDataNodes(locatedFiles);
+				pullBlocksFromDataNodes.pullBlock();
+			} else {
+				System.err.println("从HDFS拷贝文件"+filename+"失败！");
+			}
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -183,8 +206,6 @@ public class ClientOperations {
 		block.put("blkAckPort", blksInfo.getInt("blkAckPort"));
 		block.put("blkIndex", blksInfo.getInt("blkIndex"));
 		
-//		String filepath = json.getString("blkInfosFilePath");
-//		int ackBlkNum = json.getInt("ackBlockNum");
 		BlockTransfer blockTransfer = new BlockTransfer(block);
 		blockTransfer.sendBlock();
 	}
@@ -326,8 +347,6 @@ public class ClientOperations {
 		}
 	}
 	
-	
-	
 	public class AddNewFile extends Thread {
 		
 		private String localFilePath;
@@ -407,6 +426,7 @@ public class ClientOperations {
 		}
 		
 	}
+	
 	public class CommitFileThread extends Thread {
 		String fileName;
 		public CommitFileThread(String fileName) {
@@ -454,4 +474,113 @@ public class ClientOperations {
 		
 	};
 	
+	public class PullBlocksFromDataNodes extends Thread {
+		JSONObject locatedBlocks;
+		int pulledBlockNum;
+		String localHost ;
+		
+		public PullBlocksFromDataNodes(JSONObject locatedBlocks) {
+			this.locatedBlocks = locatedBlocks;
+			this.pulledBlockNum = 0;
+			
+			try {
+				localHost = InetAddress.getLocalHost().getHostAddress();
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		public PullBlocksFromDataNodes(JSONObject locatedBlocks, int pulledBlockNum) {
+			this.locatedBlocks = locatedBlocks;
+			this.pulledBlockNum = pulledBlockNum;
+			
+			try {
+				localHost = InetAddress.getLocalHost().getHostAddress();
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		public int getPulledBlockNum() {
+			return pulledBlockNum;
+		}
+
+		public void setPulledBlockNum(int pulledBlockNum) {
+			this.pulledBlockNum = pulledBlockNum;
+		}
+		
+		public void pullBlock() {
+			pullBlock(pulledBlockNum);
+		}
+		
+		public void pullBlock(int pulledNum) {
+			int blkNums = locatedBlocks.getInt("blockNum");
+			String filename = locatedBlocks.getString("filename");
+			if (pulledBlockNum >= blkNums) {
+				System.out.println("pulledBlockNum:"+pulledBlockNum);
+				System.out.println("所有block都缓存到本地了，准备合并");
+			} else {
+				JSONArray blocks = locatedBlocks.getJSONArray("blocks");
+				int curPulledNum = pulledNum;
+				for (int i=curPulledNum; i <blkNums; i++ ) {
+					JSONObject curBlock = blocks.getJSONObject(i);
+					long blockId = curBlock.getLong("blockId");
+					JSONArray activeTargets = curBlock.getJSONArray("activeTargets");
+					for (int j=0; j< activeTargets.size(); j++) {
+						JSONObject target = activeTargets.getJSONObject(j);
+						String ipaddr = target.getString("ipaddr");
+						int port = target.getInt("blkPort");
+						Socket client = new Socket();
+						try {
+							client.connect(new InetSocketAddress(ipaddr,port));
+							OutputStream outStream = client.getOutputStream();
+							InputStream inputStream = client.getInputStream();
+							outStream.write(("pullBlock" + " " + curBlock.getLong("blockId")).getBytes());	
+
+							String blkPath = Client.CLIENT_CACHE + blockId + ".cache";
+							FileOutputStream fos = new FileOutputStream(blkPath);
+							int data;
+							int count = 0;
+							while ( -1 != (data =inputStream.read()))
+							{
+								fos.write( data );
+								count++;
+							}
+							System.out.println("\nFile has been received successfully." + count);
+							fos.close();
+							outStream.write("done".getBytes());
+							inputStream.close();
+							outStream.close();
+							client.close();
+							System.out.println("pulledBlockNum:"+pulledNum);
+							pulledNum ++;
+							System.out.println("pulledBlockNum:"+pulledNum);
+							break;
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+				
+				//全部block都pull到cache中了，执行合并
+				if (pulledNum == blkNums) {
+					System.out.println("所有block都pull到本地了，准备合并");
+					
+					if (LocalBlocksCombine.combineBlocks(filename, null, blocks, null)) {
+						System.out.println("所有block合并完成");
+					}
+					
+					for (int i=0;i<blkNums;i++) {
+						String blkCachePath = Client.CLIENT_CACHE + blocks.getJSONObject(i).getString("blockId") + ".cache";
+						File tmp = new File(blkCachePath);
+						if (tmp.isFile() && tmp.exists())
+							tmp.delete();
+					}
+				}
+			}
+		}
+	}
 }

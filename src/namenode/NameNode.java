@@ -138,7 +138,7 @@ public class NameNode {
 		String detailPath = NAMENODE_ROOT + "/details/" + fileName + ".detail";
 		try {
 			String fileDetailStr = FileHelper.loadFileIntoString(detailPath, "UTF-8");
-			fileDetail = JSONObject.fromObject(fileDetail);
+			fileDetail = JSONObject.fromObject(fileDetailStr);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
