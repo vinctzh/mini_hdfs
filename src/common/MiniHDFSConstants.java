@@ -7,7 +7,8 @@ public class MiniHDFSConstants {
 	public static final boolean doDebug = true;
 	// Cient 和 NameNode通信的协议格式
 	public static final String ADDFILE = "add";
-
+	public static final String LSFILES = "ls";
+	
 	// NameNode Server IP地址
 	public static final String SERVER = "127.0.0.1";
 	

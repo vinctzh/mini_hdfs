@@ -189,8 +189,9 @@ public class NameNodeService {
 				InputStream inStream = socket.getInputStream();
 				OutputStream outStream = socket.getOutputStream();
 				outStream.write("Welcome !".getBytes());
-				byte[] buffer = new byte[1024];
+				
 				while (true) {
+					byte[] buffer = new byte[1024];
 					int len = inStream.read(buffer);
 					if (len <= 0) {
 						System.out.println("-->和client的连接已经断开！！");
@@ -224,6 +225,14 @@ public class NameNodeService {
 						nameNode.commitFileConstruction(fileName);
 						outStream.write("done".getBytes());
 					}
+					// 文件列表
+					if (recvMsg.equals(MiniHDFSConstants.LSFILES)) {
+						JSONObject filesList = nameNode.getStoredFiles();
+						System.out.println(filesList.toString());
+						outStream.write(("StoredFiles "+ filesList.toString()).getBytes());
+
+					}
+					
 					if (recvMsg.equals("received")) {
 						outStream.write("done".getBytes());
 					}

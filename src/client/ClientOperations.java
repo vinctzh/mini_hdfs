@@ -13,16 +13,106 @@ import java.net.UnknownHostException;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-
 import common.FileHelper;
 import common.LocalFileDescription;
 import common.LocalFileSeperator;
 import common.MiniHDFSConstants;
 
 public class ClientOperations {
+	
+	public JSONObject listFile() {
+		
+		JSONObject storedFiles = new JSONObject();
+		try {
+			Socket client = new Socket(); 
+			client.connect(new InetSocketAddress(MiniHDFSConstants.SERVER, MiniHDFSConstants.SERVER_PORT4CLIENT));
+			OutputStream outStream = client.getOutputStream();
+			InputStream inputStream = client.getInputStream();
+			
+			
+			int len;
+			while (true) {
+				byte buffer[] = new byte[1024];
+				len = inputStream.read(buffer);
+				System.out.println(new String(buffer,0,len));
 
+				if (len <= 0) {
+					inputStream.close();
+					outStream.close();
+					client.close();
+					System.out.println("结束");
+					break;
+				} else  {
+					String recv = new String(buffer, 0, len);
+					if (recv.equals("Welcome !")) {
+						outStream.write(MiniHDFSConstants.LSFILES.getBytes());	
+					}
+					// 返回的文件信息
+					if (recv.startsWith("StoredFiles")) {
+						String storedFilesJSONString = recv.substring("StoredFiles".length()).trim();
+						storedFiles = JSONObject.fromObject(storedFilesJSONString);
+						outStream.write("received".getBytes());
+					}
+					
+					if (recv.equals("done")) {
+						System.out.println("结束");
+						outStream.close();
+						inputStream.close();
+						client.close();
+						break;
+					}
+				}
+			
+			}
+			
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		showFilesOnHDFS(storedFiles);
+		return storedFiles;
+	}
+
+	private void showFilesOnHDFS(JSONObject storedFiles) {
+		JSONObject files = storedFiles.getJSONObject("files");
+//		filesJson.put("files", filesArray)
+		
+		System.out.println("创建完成的文件信息：");
+		if (files.isEmpty()) {
+			System.out.println("->没有创建完成的文件！！");
+		} else {
+			JSONArray filesArray = files.getJSONArray("files");
+			for (int i=0; i < filesArray.size(); i++) {
+				JSONObject file = filesArray.getJSONObject(i);
+				String fileName = file.getString("filename");
+				long fSize = file.getLong("fileSize");
+				String fileSize = String.valueOf(fSize);
+				System.out.printf("->%50s\t%16s\n", fileName,fileSize );
+			}
+		}
+		System.out.println("------------------------------------");
+		System.out.println("正在创建的文件信息：");
+		JSONObject filesUC = storedFiles.getJSONObject("filesUC");
+		
+		
+		if (filesUC.isEmpty()) {
+			System.out.println("->没有正在创建的文件！！");
+		} else {
+			JSONArray filesUCArray = filesUC.getJSONArray("filesUC");
+			for (int i=0; i < filesUCArray.size(); i++) {
+				JSONObject file = filesUCArray.getJSONObject(i);
+				String fileName = file.getString("filename");
+				long fSize = file.getLong("fileSize");
+				String fileSize = String.valueOf(fSize);
+				System.out.printf("->%20s\t%16s", fileName,fileSize );
+			}
+		}
+	}
+	
 	public void addFile(String localFilePath) {
 		new AddNewFile(localFilePath).start();
+		return;
 	}
 	
 	public void commitFile(final String fileName) {
@@ -310,4 +400,5 @@ public class ClientOperations {
 		}
 		
 	};
+	
 }

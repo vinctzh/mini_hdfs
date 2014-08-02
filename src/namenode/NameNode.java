@@ -60,10 +60,13 @@ public class NameNode {
 	 * @return
 	 */
 	public BlockInfo[] addFile(LocalFileDescription file) {
+		
+		// 没有活动的DataNode
+		if (activeDatanodeID.isEmpty())
+			return null;
 		String fileName = file.getName();
 		
 		if (existFile(fileName)) {
-			
 			return null;
 		}
 		Long fileSize = file.getLength();
@@ -222,6 +225,17 @@ public class NameNode {
 		}
 		filesUCJson.put("filesUC", filesArray);
 		return filesUCJson;
+	}
+	
+	public JSONObject getStoredFiles() {
+		JSONObject storedFiles = new JSONObject();
+		
+		JSONObject files = convertFilesToJSONObject();
+		JSONObject filesUnderConstruction = convertUCFilesToJSONObject();
+		storedFiles.put("files", files);
+		storedFiles.put("filesUC", filesUnderConstruction);
+		
+		return storedFiles;
 	}
 	/**
 	 * 当一个DataNode连接到NameNode的时候，更新NameNode中的DataNode信息
