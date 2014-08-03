@@ -13,10 +13,20 @@ import net.sf.json.JSONObject;
 
 public class BlockTransfer {
 	JSONObject locatedBlock;
+	String directory;
+	String format;
 	
+
 	public BlockTransfer(JSONObject locatedBlock) {
 		System.out.println(locatedBlock.toString());
 		this.locatedBlock = locatedBlock;
+	}
+	
+	public BlockTransfer(JSONObject locatedBlock, String directory, String format) {
+		System.out.println(locatedBlock.toString());
+		this.locatedBlock = locatedBlock;
+		this.directory = directory;
+		this.format = format;
 	}
 	
 	public void sendBlock() {
@@ -77,8 +87,10 @@ public class BlockTransfer {
 						}
 						// blkinfo已经接受到，开始传实际的blk数据
 						if (recv.equals("blknow")) {
-							String blkPath = Client.CLIENT_CACHE + blkID + ".cache";
-						
+//							String blkPath = Client.CLIENT_CACHE + blkID + ".cache";
+							
+							String blkPath = directory + blkID + "." + format;;
+
 							FileInputStream fins = new FileInputStream(blkPath);
 							
 							int data;

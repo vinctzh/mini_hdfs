@@ -177,7 +177,7 @@ public class DataNodeDameon {
 							blkInfo.put("curIndex", curIndex+1);
 							System.out.println("向" + (curIndex+1) + "的数据节点发包");
 							System.out.println(""+blkInfo.getInt("curIndex"));
-							BlockTransfer blkTransfer = new BlockTransfer(blkInfo);
+							BlockTransfer blkTransfer = new BlockTransfer(blkInfo, dataNode.getStorageDir(), "meta");
 							blkTransfer.sendBlock();
 						} else {
 							System.out.println("最后一个replication了：" + curIndex);

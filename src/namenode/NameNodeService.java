@@ -100,7 +100,7 @@ public class NameNodeService {
 						break;
 					}
 					String recvMsg = new String(buffer, 0, len);
-					System.out.println("msg from " + dataNodeId + ": "+recvMsg);
+//					System.out.println("msg from " + dataNodeId + ": "+recvMsg);
 					if (recvMsg.startsWith("regist")) {
 						String data = recvMsg.substring("regist".length()).trim();
 						

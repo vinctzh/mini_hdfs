@@ -11,6 +11,9 @@ public class Client {
 	public static final String CLIENT_CACHE = "/home/jianyuan/cache/";
 	public static final String CLIENT_DOWNLOAD = "/home/jianyuan/fromHDFS/";
 
+	
+	public static boolean add_file_locked = false;
+	
 	public static void main(String[] args) {
 		ClientOperations operations = new ClientOperations();
 		boolean isConnected = false; 
@@ -21,6 +24,10 @@ public class Client {
 			String opt = sc.next();
 			
 			if (opt.equals(MiniHDFSConstants.ADDFILE)) {
+				if (add_file_locked) {
+					System.err.println("当前有文件正在被上传，请稍后再上传^-^");
+					continue;
+				}
 				System.out.println("请出入你要添加的文件路径：");
 				String localFilePath = sc.next();
 				operations.addFile(localFilePath);

@@ -22,6 +22,12 @@ import common.MiniHDFSConstants;
 
 public class ClientOperations {
 	
+	BlockACKThread blockACKThread ;
+	
+	public ClientOperations() {
+		blockACKThread = new BlockACKThread();
+		blockACKThread.start();
+	}
 	public JSONObject listFile() {
 		
 		JSONObject storedFiles = new JSONObject();
@@ -111,7 +117,7 @@ public class ClientOperations {
 	}
 	
 	private boolean canCopy(JSONObject locatedFiles) {
-		if (locatedFiles == null) 
+		if (locatedFiles == null || locatedFiles.isEmpty()) 
 			return false;
 		
 		JSONArray blocks = locatedFiles.getJSONArray("blocks");
@@ -236,6 +242,7 @@ public class ClientOperations {
 		return result;
 	}
 	public void addFile(String localFilePath) {
+		Client.add_file_locked = true;
 		new AddNewFile(localFilePath).start();
 		return;
 	}
@@ -258,7 +265,7 @@ public class ClientOperations {
 		block.put("blkAckPort", blksInfo.getInt("blkAckPort"));
 		block.put("blkIndex", blksInfo.getInt("blkIndex"));
 		
-		BlockTransfer blockTransfer = new BlockTransfer(block);
+		BlockTransfer blockTransfer = new BlockTransfer(block, Client.CLIENT_CACHE, "cache");
 		blockTransfer.sendBlock();
 	}
 	
@@ -266,6 +273,8 @@ public class ClientOperations {
 		String blkInfosFilePath;
 		int sentBlockNum;
 		String localHost;
+		
+		BlockACKThread blkAckThread;
 		
 		public DistributeFileThread(String blkInfosFilePath) {
 			this.blkInfosFilePath = blkInfosFilePath;
@@ -309,6 +318,7 @@ public class ClientOperations {
 				
 				
 				if (sentBlockNum >= blkNums) {
+					
 					// 清空本地缓存
 					System.out.println("所有包都发送完成，现在清空本地缓存！");
 					commitFile(blksinfo.getString("filename"));
@@ -323,7 +333,7 @@ public class ClientOperations {
 							tmp.delete();
 					}
 					System.out.println("清空本地缓存完成！");
-					
+					Client.add_file_locked = false;
 					return;
 				}
 					
@@ -348,11 +358,12 @@ public class ClientOperations {
 	}
 	
 	public class BlockACKThread extends Thread {
+		
 		ServerSocket serverSocket;
 		DistributeFileThread distributeFileThread;
-		public BlockACKThread(DistributeFileThread distributeFileThread) {
-			System.out.println("testas");
-			this.distributeFileThread = distributeFileThread;
+		
+		public BlockACKThread() {
+			this.distributeFileThread = null;
 			try {
 				serverSocket = new ServerSocket(MiniHDFSConstants.CLIENT_BLK_ACK_PORT);
 				if (MiniHDFSConstants.doDebug) {
@@ -363,6 +374,25 @@ public class ClientOperations {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+		}
+		
+		public BlockACKThread(DistributeFileThread distributeFileThread) {
+			this.distributeFileThread = distributeFileThread;
+			
+			try {
+				serverSocket = new ServerSocket(MiniHDFSConstants.CLIENT_BLK_ACK_PORT);
+				if (MiniHDFSConstants.doDebug) {
+					System.out.println("Serversocket for block ack: serverSocket: " + serverSocket.toString());
+				}
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		public void setDistributeFileThread(DistributeFileThread distributeFileThread) {
+			this.distributeFileThread = distributeFileThread;
 		}
 		
 		public void run() {
@@ -381,7 +411,6 @@ public class ClientOperations {
 							String recv = new String(buffer);
 							System.out.println("-->ack message received: " + recv);
 							JSONObject json = JSONObject.fromObject(recv);
-							//String filepath = json.getString("blkInfosFilePath");
 							
 							int ackBlkNum = json.getInt("ackBlockNum");
 							distributeFileThread.setSentBlockNum(ackBlkNum+1);
@@ -447,6 +476,7 @@ public class ClientOperations {
 							// 文件创建失败
 							if (blkNums <1) {
 								System.err.println("-->文件创建失败！！");
+								Client.add_file_locked = false;
 								break;
 							} else {
 								// 将文件分成多个分块
@@ -458,13 +488,16 @@ public class ClientOperations {
 								outStream.write("received".getBytes());
 								DistributeFileThread distributeFileThread = new DistributeFileThread(Client.CLIENT_CACHE + localFile.getName() + ".blksinfo");
 								distributeFileThread.distributeFile();
-								new BlockACKThread(distributeFileThread).start();
+//								new BlockACKThread(distributeFileThread).start();
+								blockACKThread.setDistributeFileThread(distributeFileThread);
+								
 							}
 						}
 					}
 				}
 				
 			} catch (IOException e) {
+				Client.add_file_locked = false;
 				e.printStackTrace();
 				return;
 			}
@@ -517,6 +550,7 @@ public class ClientOperations {
 				e.printStackTrace();
 			}
 		}
+		
 		
 		Socket connect() throws IOException {
 			Socket client = new Socket(); 

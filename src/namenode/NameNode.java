@@ -65,6 +65,9 @@ public class NameNode {
 		// 没有活动的DataNode
 		if (activeDatanodeID.isEmpty())
 			return null;
+		
+		if (activeDatanodeID.size() < file.getReplication())
+			return null;
 		String fileName = file.getName();
 		
 		if (existFile(fileName)) {

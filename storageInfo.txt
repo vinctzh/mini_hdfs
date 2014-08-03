@@ -1,8 +1,0 @@
-{
-    "storageID": "ST001", 
-    "name": "Centvin", 
-    "storageDir": "/home/jianyuan/storage_01/", 
-    "capacity": 1024000, 
-    "used": 51200, 
-    "blkPort": 9420
-}

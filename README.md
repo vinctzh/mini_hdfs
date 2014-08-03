@@ -1,3 +1,21 @@
+##2014-08-03
+----
+BUGS
+
+1. **[done]**第二次添加文件时，BlockAckThread中的异常 
+2. 在多个机器上测试时，DataNode向下一个DataNode发送block会出错。**（BlockTransfer：String blkPath = Client.CLIENT_CACHE + blkID + ".cache";）**
+3. 添加文件时，文件名中带空格（进行文件名validation）
+
+TODO
+
+1. 添加新文件时，目标DataNode荡机的异常处理;
+2. 测试测试，发现bug;
+3. 某些共享数据加锁。
+
+DONE
+
+1. 目前独立的4个功能已经完成。
+
 ## 2014-08-02
 ---
 TODO:
