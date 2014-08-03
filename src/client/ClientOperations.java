@@ -183,6 +183,58 @@ public class ClientOperations {
 		}
 	}
 	
+	public boolean removeFile(String filename) {
+		Socket client = new Socket(); 
+		boolean result =false;
+		try {
+			client.connect(new InetSocketAddress(MiniHDFSConstants.SERVER, MiniHDFSConstants.SERVER_PORT4CLIENT));
+			OutputStream outStream = client.getOutputStream();
+			InputStream inputStream = client.getInputStream();
+			int len;
+			
+			while (true) {
+				byte buffer[] = new byte[1024];
+				len = inputStream.read(buffer);
+				System.out.println(new String(buffer,0,len));
+				if (len <= 0) {
+					inputStream.close();
+					outStream.close();
+					client.close();
+					System.out.println("结束");
+					break;
+				} else  {
+					String recv = new String(buffer, 0, len);
+					if (recv.equals("Welcome !")) {
+						outStream.write((MiniHDFSConstants.RMFILE + " " + filename).getBytes());	
+					}
+					// 返回的文件信息
+					if (recv.startsWith("removeResult")) {
+						String msg = recv.substring("removeResult".length()).trim();
+						System.err.println("删除文件"+filename+":" + msg);
+						outStream.write("received".getBytes());
+						if (msg.startsWith("OK")) {
+							result = true;
+						}
+							
+					}
+					
+					if (recv.equals("done")) {
+						System.out.println("结束");
+						outStream.close();
+						inputStream.close();
+						client.close();
+						break;
+					}
+				}
+			}
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		return result;
+	}
 	public void addFile(String localFilePath) {
 		new AddNewFile(localFilePath).start();
 		return;

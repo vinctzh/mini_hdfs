@@ -32,6 +32,11 @@ public class Client {
 				System.out.println("请输入要删除的文件名：");
 				String filename  = sc.next();
 				System.out.println("正在为您删除HDFS上的文件"+filename);
+				if (operations.removeFile(filename)) {
+					System.out.println("删除文件成功！！");
+				} else {
+					System.err.println("删除文件失败！！");
+				}
 			} else if (opt.equals(MiniHDFSConstants.COPYFILE)) {
 				System.out.println("请输入要拷贝到本地的文件名：");
 				String filename  = sc.next();

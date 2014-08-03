@@ -239,6 +239,18 @@ public class NameNodeService {
 						outStream.write(("locatedFiles "+ locatedFiles.toString()).getBytes());
 					}
 					
+					if (recvMsg.startsWith(MiniHDFSConstants.RMFILE)) {
+						String fileName = recvMsg.substring(MiniHDFSConstants.COPYFILE.length()).trim();
+						boolean success = nameNode.removeFile(fileName);
+						String msg;
+						if (success)
+							msg = "OK NameNode已经收到删除请求，正在努力删除文件!";
+						else
+							msg = "Failure 删除请求失败！请检查输入的文件是否存在，确保他不是正在创建中的文件!";
+						
+						outStream.write(("removeResult "+msg).getBytes());
+					}
+					
 					if (recvMsg.equals("received")) {
 						outStream.write("done".getBytes());
 					}
@@ -249,6 +261,7 @@ public class NameNodeService {
 			}
 		}
 	}
+	
 	public static JSONObject blkInfoToJsonData(BlockInfo[] blocks, int replication) {
 		int blkNums = blocks.length;
 		
@@ -283,6 +296,7 @@ public class NameNodeService {
 		return blocksJson;
 		
 	}
+	
 	public LocalFileDescription getLocalFileData(String recvMsg) {
 		JSONObject json = JSONObject.fromObject(recvMsg);
 		LocalFileDescription localFileDescription = new LocalFileDescription(json.getString("name"), json.getString("localpath"), json.getLong("length"),json.getInt("replication"));

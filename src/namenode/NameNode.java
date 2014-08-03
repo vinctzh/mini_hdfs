@@ -35,17 +35,18 @@ public class NameNode {
 	public static HashMap<String, INodeFile> files;
 	public static HashMap<String, INodeFileUnderConstruction> filesUnderConstruction;
 	
+	// DataNode需要做的操作log
+	public static HashMap<String, JSONArray> optTODOLogs;
+	
 	public NameNode() {
 		blockManager = new BlockManager();
 		activeDataNodes = new HashMap<String, DataNodeDescriptor>();
 		activeDatanodeID = new ArrayList<String>();
-		
-	
+		optTODOLogs = new HashMap<String, JSONArray>();
 		initialNN();
 	}
 	
 	public boolean initialNN() {
-		
 		loadLocalLogs();
 		showFiles();
 		showUCFiles();
@@ -156,7 +157,54 @@ public class NameNode {
 		return false;
 	}
 	
+	// 不支持对创建中的文件进行删除
+	public boolean removeFile(String filename) {
+		if (files.containsKey(filename)) {
+			return removeFileInternal(filename);
+		} 
+		return false;
+	}
 	
+	private boolean removeFileInternal(String filename) {
+		if (files.containsKey(filename)) {
+			JSONObject fileDetail = getFileDetail(filename);
+			int blockNum = fileDetail.getInt("blockNum");
+			int replication = fileDetail.getInt("replication");
+			JSONArray blocks = fileDetail.getJSONArray("blocks");
+			
+			if (blocks.size() <= 0) {
+				return false;
+			}
+			
+			for (int i=0;i < blocks.size();i++) {
+				JSONObject block = blocks.getJSONObject(i);
+				long blockId = block.getLong("blockId");
+				JSONArray targets = block.getJSONArray("targets");
+				for (int j=0; j<targets.size(); j++) {
+					JSONObject target = targets.getJSONObject(j);
+					String storageID = target.getString("storageId");
+					if (optTODOLogs.containsKey(storageID)) {
+						JSONArray opts = optTODOLogs.get(storageID);
+						JSONObject opt = new JSONObject();
+						opt.put("opt", "rmblock");
+						opt.put("object", blockId);
+						opts.add(opt);
+						optTODOLogs.put(storageID, opts);
+					} else {
+						JSONArray opts = new JSONArray();
+						JSONObject opt = new JSONObject();
+						opt.put("opt", "rmblock");
+						opt.put("object", blockId);
+						opts.add(opt);
+						optTODOLogs.put(storageID, opts);
+					}
+				}
+			}
+			showOptTODOLogs() ;
+			return true;
+		} 
+		return false;
+	}
 	public boolean commitFileConstruction(String filename) {
 		// 该文件在创建列表中
 		if (filesUnderConstruction.containsKey(filename)) {
@@ -362,6 +410,27 @@ public class NameNode {
 		} else {
 			System.err.println("所有UC文件信息：");
 			System.err.println("--> " +filesUnderConstruction.toString());
+		}
+	}
+	
+	public void showOptTODOLogs() {
+		int sz = optTODOLogs.size();
+		if (optTODOLogs.isEmpty() || sz <= 0) {
+			System.out.println("没有TODO记录");
+		}
+		Iterator<Entry<String, JSONArray>> todoIter = optTODOLogs.entrySet().iterator();
+		
+		while(todoIter.hasNext()) {
+			Map.Entry<String, JSONArray> entry = todoIter.next();
+			String key = entry.getKey();
+			JSONArray todos = entry.getValue();
+			System.out.println(key+"要进行的操作：");
+			
+			for (int i=0; i<todos.size(); i++) {
+				JSONObject todo = todos.getJSONObject(i);
+				System.out.println("-->"+todo.getString("opt")+"\t"+todo.getString("object"));
+			}
+			
 		}
 	}
 }
