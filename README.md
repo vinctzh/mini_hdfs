@@ -4,16 +4,19 @@ BUGS
 
 1. **[done]**第二次添加文件时，BlockAckThread中的异常 
 2. **[done]**在多个机器上测试时，DataNode向下一个DataNode发送block会出错。**（BlockTransfer：String blkPath = Client.CLIENT_CACHE + blkID + ".cache";）**
-3. 添加文件时，文件名中带空格（进行文件名validation）
-4. ###创建文件时NameNode荡机的情况（返回创建文件失败，删除NameNode和Client中的相应的记录）
+3. **[done]**添加文件时，文件名中带空格（进行文件名validation）
+4.  **[done]**创建文件时NameNode荡机的情况（返回创建文件失败，删除NameNode和Client中的相应的记录）
 5.  **[done]**DataNode结束时，NameNode不能判断DataNode已断开连接;
+6. Copy文件到client上的过程中，DataNode荡掉的情况。
+7. 上传和下载下来的文件大小不一致，每个block相差5字节！！！
 
 TODO
 
-1. **添加新文件时，目标DataNode荡机的异常处理**;
+1. **[done]****添加新文件时，目标DataNode荡机的异常处理**;
 2. 测试测试，发现bug;
 3. 某些共享数据加锁。
-4. 保存任务列表
+4.  **[done]**保存任务列表
+5. NameNode启动时自动加载未完成的任务列表
 
 DONE
 

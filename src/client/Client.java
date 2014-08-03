@@ -55,8 +55,10 @@ public class Client {
 				System.out.println("请输入要拷贝到本地的文件名：");
 				String filename  = sc.next();
 				System.out.println("正在为您拷贝HDFS上的文件"+filename);
-				operations.copyFile(filename);
-				System.out.println("已经完成拷贝"+filename);
+				if (operations.copyFile(filename))
+					System.out.println("已经完成拷贝"+filename);
+				else
+					System.out.println("拷贝"+filename+"失败");
 			} else {
 				System.out.println(opt + "不是合法命令");
 			}

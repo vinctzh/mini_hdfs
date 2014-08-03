@@ -134,7 +134,7 @@ public class ClientOperations {
 		return true;
 	}
 	
-	public void copyFile(String filename) {
+	public boolean copyFile(String filename) {
 		JSONObject locatedFiles = new JSONObject();
 		try {
 			Socket client = new Socket(); 
@@ -178,15 +178,17 @@ public class ClientOperations {
 			}
 			if (canCopy(locatedFiles)) {
 				PullBlocksFromDataNodes pullBlocksFromDataNodes = new PullBlocksFromDataNodes(locatedFiles);
-				pullBlocksFromDataNodes.pullBlock();
+				return pullBlocksFromDataNodes.pullBlock();
 			} else {
 				System.err.println("从HDFS拷贝文件"+filename+"失败！");
+				return false;
 			}
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return false;
 	}
 	
 	public void cancelAddFile(String filename) {
@@ -648,11 +650,11 @@ public class ClientOperations {
 			this.pulledBlockNum = pulledBlockNum;
 		}
 		
-		public void pullBlock() {
-			pullBlock(pulledBlockNum);
+		public boolean pullBlock() {
+			return pullBlock(pulledBlockNum);
 		}
 		
-		public void pullBlock(int pulledNum) {
+		public boolean pullBlock(int pulledNum) {
 			int blkNums = locatedBlocks.getInt("blockNum");
 			String filename = locatedBlocks.getString("filename");
 			if (pulledBlockNum >= blkNums) {
@@ -664,11 +666,14 @@ public class ClientOperations {
 				for (int i=curPulledNum; i <blkNums; i++ ) {
 					JSONObject curBlock = blocks.getJSONObject(i);
 					long blockId = curBlock.getLong("blockId");
+					long blkSize = curBlock.getLong("blockSize");
 					JSONArray activeTargets = curBlock.getJSONArray("activeTargets");
 					for (int j=0; j< activeTargets.size(); j++) {
+						
 						JSONObject target = activeTargets.getJSONObject(j);
 						String ipaddr = target.getString("ipaddr");
 						int port = target.getInt("blkPort");
+						System.out.println("copy block " + blockId + " from "+ target.getString("storageId"));
 						Socket client = new Socket();
 						try {
 							client.connect(new InetSocketAddress(ipaddr,port));
@@ -685,6 +690,10 @@ public class ClientOperations {
 								fos.write( data );
 								count++;
 							}
+							if (count < blkSize) {
+								System.out.println("\nblock不完整." + count);
+								continue;
+							}
 							System.out.println("\nFile has been received successfully." + count);
 							fos.close();
 							outStream.write("done".getBytes());
@@ -697,7 +706,8 @@ public class ClientOperations {
 							break;
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							//e.printStackTrace();
+							continue;
 						}
 					}
 				}
@@ -716,8 +726,19 @@ public class ClientOperations {
 						if (tmp.isFile() && tmp.exists())
 							tmp.delete();
 					}
+					
+					return true;
+				} else {
+					for (int i=0;i<blkNums;i++) {
+						String blkCachePath = Client.CLIENT_CACHE + blocks.getJSONObject(i).getString("blockId") + ".cache";
+						File tmp = new File(blkCachePath);
+						if (tmp.isFile() && tmp.exists())
+							tmp.delete();
+					}
+					return false;
 				}
 			}
+			return false;
 		}
 	}
 }
