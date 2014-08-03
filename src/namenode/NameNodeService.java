@@ -100,6 +100,7 @@ public class NameNodeService {
 						break;
 					}
 					String recvMsg = new String(buffer, 0, len);
+					System.out.println("msg from " + dataNodeId + ": "+recvMsg);
 					if (recvMsg.startsWith("regist")) {
 						String data = recvMsg.substring("regist".length()).trim();
 						
@@ -115,9 +116,21 @@ public class NameNodeService {
 						
 						nameNode.addDataNode(dnDescriptor);
 						nameNode.showActiveDataNodes();
+						outStream.write("OK".getBytes());
 					}
-					if (MiniHDFSConstants.doDebug)
-						System.out.println("Received msg: "+recvMsg);
+					JSONArray opts = nameNode.getOptsTODO(dataNodeId);
+					// ÓÐ²Ù×÷
+					if (opts == null || opts.isEmpty()) {
+						outStream.write("OK".getBytes());
+					} else { // ÎÞTODO 
+						outStream.write(("optstodo " + opts.toString()).getBytes());
+						len = inStream.read(buffer);
+						String mg = new String(buffer,0,len);
+						if (mg.equals("optsdone")) {
+							nameNode.removeOptsTODO(dataNodeId, opts);
+							outStream.write("OK".getBytes());
+						}
+					}
 				}
 
 			} catch (IOException e) {

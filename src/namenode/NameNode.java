@@ -168,8 +168,6 @@ public class NameNode {
 	private boolean removeFileInternal(String filename) {
 		if (files.containsKey(filename)) {
 			JSONObject fileDetail = getFileDetail(filename);
-			int blockNum = fileDetail.getInt("blockNum");
-			int replication = fileDetail.getInt("replication");
 			JSONArray blocks = fileDetail.getJSONArray("blocks");
 			
 			if (blocks.size() <= 0) {
@@ -200,11 +198,43 @@ public class NameNode {
 					}
 				}
 			}
+			files.remove(filename);
+			removeDetailFile(filename);
 			showOptTODOLogs() ;
+			updateNNLog();
 			return true;
 		} 
 		return false;
 	}
+	
+	private void removeDetailFile(String filename) {
+		String detailPath = NAMENODE_ROOT + "/details/" + filename + ".detail";
+		File detailFile = new File(detailPath);
+		if (detailFile.exists() && detailFile.isFile()) {
+			detailFile.delete();
+		}
+	}
+	
+	public JSONArray getOptsTODO(String storageID) {
+		JSONArray optsTODO = new JSONArray();
+		if (optTODOLogs.containsKey(storageID)) {
+			optsTODO = optTODOLogs.get(storageID);
+		}
+		return optsTODO;	
+	}
+	
+	public void setOptsTODO(String storageID, JSONArray optsTODO) {
+		optTODOLogs.put(storageID, optsTODO);
+	}
+	public void removeOptsTODO(String storageID, JSONArray opts) {
+		JSONArray optsTODO = getOptsTODO(storageID);
+		for (int i=0; i< opts.size(); i++) {
+			optsTODO.remove(opts.get(i));
+		}
+		setOptsTODO(storageID, optsTODO);
+	}
+	
+
 	public boolean commitFileConstruction(String filename) {
 		// 该文件在创建列表中
 		if (filesUnderConstruction.containsKey(filename)) {

@@ -1,5 +1,6 @@
 package datanode;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -28,6 +29,15 @@ public class DataNodeDameon {
 	
 	NameNodeConnectionThread nnComConnectionThread;
 	
+	private void doOperation(String opt, String obj) {
+		if (opt.equals("rmblock")) {
+			// 删除本地块
+			String blkPath = dataNode.getStorageDir() + obj + ".meta";
+			File file = new File(blkPath);
+			if (file.isFile() && file.exists()) 
+				file.delete();
+		}
+	}
 	
 	public DataNodeDameon(String localConfigFile) {
 		
@@ -245,19 +255,43 @@ public class DataNodeDameon {
 				int len = inStream.read(buffer);
 				System.out.println("Datanode recevied msg: "+new String(buffer, 0,len ) + " from NameNode.");
 				outStream.write(("regist " + dataNodeJSONString).getBytes());
-				
+				len = inStream.read(buffer);
+				if (new String(buffer,0,len).equals("OK"))
+					System.out.println("Connection established!");
+				else
+					return;
 				while (true) {
 					try {
-//						System.out.println("Heartbeats");
 						sleep(5000);
 						outStream.write("This is a heart beat information!".getBytes());
+						len = inStream.read(buffer);
+						String recv = new String(buffer, 0, len);
+						if (recv.startsWith("optstodo")) {
+							System.err.println("Namenode发来TODO任务" + recv);
+							String optstodo = recv.substring("optstodo".length()).trim();
+							JSONArray optsArray = JSONArray.fromObject(optstodo);
+							if (!optsArray.isEmpty()) {
+								for (int i=0; i< optsArray.size(); i++) {
+									JSONObject opt = optsArray.getJSONObject(i);
+									String operation = opt.getString("opt");
+									String obj = opt.getString("object");
+									doOperation(operation, obj);
+								}
+								outStream.write("optsdone".getBytes());
+								len = inStream.read(buffer);
+								String rc = new String(buffer,0, len);
+								if ("OK".equals(rc))
+									continue;
+							}
+						}
+						
+						if ("OK".equals(recv))
+							continue;
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 						System.out.println("exception caught while sleep");
 					}
-					
 				}
-				
 				
 			} catch (IOException e) {
 				e.printStackTrace();
