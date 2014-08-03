@@ -57,7 +57,6 @@ public class DataNodeDameon {
 			if (blkPort != 0) 
 				dataNode.setBlkPort(blkPort);
 			
-			System.err.println("test:" + json.optInt("dafd") + " " + json.optString("das"));
 			this.dataNode = dataNode;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -277,7 +276,7 @@ public class DataNodeDameon {
 									String obj = opt.getString("object");
 									doOperation(operation, obj);
 								}
-								outStream.write("optsdone".getBytes());
+								outStream.write(("optsdone "+optsArray.toString()).getBytes());
 								len = inStream.read(buffer);
 								String rc = new String(buffer,0, len);
 								if ("OK".equals(rc))

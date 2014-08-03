@@ -100,7 +100,7 @@ public class NameNodeService {
 						break;
 					}
 					String recvMsg = new String(buffer, 0, len);
-//					System.out.println("msg from " + dataNodeId + ": "+recvMsg);
+					System.out.println("msg from " + dataNodeId + ": "+recvMsg);
 					if (recvMsg.startsWith("regist")) {
 						String data = recvMsg.substring("regist".length()).trim();
 						
@@ -118,24 +118,37 @@ public class NameNodeService {
 						nameNode.showActiveDataNodes();
 						outStream.write("OK".getBytes());
 					}
+					
+					if (recvMsg.startsWith("optsdone")) {
+						String optsDone = recvMsg.substring("optsdone".length()).trim();
+						JSONArray optsArray = JSONArray.fromObject(optsDone);
+						nameNode.removeOptsTODO(dataNodeId, optsArray);
+						nameNode.showActiveDataNodes();
+						outStream.write("OK".getBytes());
+					}
 					JSONArray opts = nameNode.getOptsTODO(dataNodeId);
-					// 有操作
+					// 无操作
 					if (opts == null || opts.isEmpty()) {
 						outStream.write("OK".getBytes());
-					} else { // 无TODO 
+					} else { // 有TODO s
 						outStream.write(("optstodo " + opts.toString()).getBytes());
-						len = inStream.read(buffer);
-						String mg = new String(buffer,0,len);
-						if (mg.equals("optsdone")) {
-							nameNode.removeOptsTODO(dataNodeId, opts);
-							outStream.write("OK".getBytes());
-						}
+//						len = inStream.read(buffer);
+//						String mg = new String(buffer,0,len);
+//						System.out.println("等待ND删除结束后确认" + mg);
+//						if (mg.equals("optsdone")) {
+//							nameNode.removeOptsTODO(dataNodeId, opts);
+//							nameNode.showActiveDataNodes();
+//							outStream.write("OK".getBytes());
+//						}
 					}
 				}
 
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				//e.printStackTrace();
+				System.out.println("连接异常！");
+				nameNode.deleteNode(dataNodeId);
+				nameNode.showActiveDataNodes();
 			}
 			
 			

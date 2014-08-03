@@ -1,5 +1,6 @@
 package namenode;
 
+import java.awt.Stroke;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -184,21 +185,12 @@ public class NameNode {
 				for (int j=0; j<targets.size(); j++) {
 					JSONObject target = targets.getJSONObject(j);
 					String storageID = target.getString("storageId");
-					if (optTODOLogs.containsKey(storageID)) {
-						JSONArray opts = optTODOLogs.get(storageID);
-						JSONObject opt = new JSONObject();
-						opt.put("opt", "rmblock");
-						opt.put("object", blockId);
-						opts.add(opt);
-						optTODOLogs.put(storageID, opts);
-					} else {
-						JSONArray opts = new JSONArray();
-						JSONObject opt = new JSONObject();
-						opt.put("opt", "rmblock");
-						opt.put("object", blockId);
-						opts.add(opt);
-						optTODOLogs.put(storageID, opts);
-					}
+					JSONArray opts = new JSONArray();
+					JSONObject opt = new JSONObject();
+					opt.put("opt", "rmblock");
+					opt.put("object", blockId);
+					opts.add(opt);
+					addOptsTODO(storageID, opts);
 				}
 			}
 			files.remove(filename);
@@ -210,6 +202,18 @@ public class NameNode {
 		return false;
 	}
 	
+	/**
+	 * 将要左的操作添加到TODOLoG
+	 * @param storageID
+	 * @param opts
+	 */
+	private void addOptsTODO(String storageID, JSONArray opts) {
+		JSONArray optsTODO = getOptsTODO(storageID);
+		for (int i=0; i< opts.size(); i++) {
+			optsTODO.add(opts.get(i));
+		}
+		setOptsTODO(storageID, optsTODO);
+	}
 	private void removeDetailFile(String filename) {
 		String detailPath = NAMENODE_ROOT + "/details/" + filename + ".detail";
 		File detailFile = new File(detailPath);
@@ -228,12 +232,14 @@ public class NameNode {
 	
 	public void setOptsTODO(String storageID, JSONArray optsTODO) {
 		optTODOLogs.put(storageID, optsTODO);
+		saveOptTODOSLog();
 	}
 	public void removeOptsTODO(String storageID, JSONArray opts) {
 		JSONArray optsTODO = getOptsTODO(storageID);
 		for (int i=0; i< opts.size(); i++) {
 			optsTODO.remove(opts.get(i));
 		}
+		System.out.println("remmove opts:" + optsTODO.toString());
 		setOptsTODO(storageID, optsTODO);
 	}
 	
@@ -276,6 +282,13 @@ public class NameNode {
 		FileHelper.saveStringIntoFile(NAMENODE_ROOT + "filesUC.log", filesUCInfo.toString());
 	}
 	
+	public void saveOptTODOSLog() {
+		JSONObject optsTODOS = convertOptTODOLogsToJSONObject();
+		String todosLogPath = NAMENODE_ROOT + "optTODOs.log";
+		FileHelper.saveStringIntoFile(todosLogPath, optsTODOS.toString());
+		
+	}
+	
 	public JSONObject convertFilesToJSONObject() {
 		JSONObject filesJson = new JSONObject();
 		if (files.isEmpty())
@@ -297,6 +310,21 @@ public class NameNode {
 		}
 		filesJson.put("files", filesArray);
 		return filesJson;
+	}
+	
+	public JSONObject convertOptTODOLogsToJSONObject() {
+		JSONObject optsTODO = new JSONObject();
+		if (optTODOLogs == null || optTODOLogs.isEmpty()) {
+			return new JSONObject();
+		}
+		Iterator<Entry<String, JSONArray>> TODOsIter = optTODOLogs.entrySet().iterator();
+		while (TODOsIter.hasNext()) {
+			Map.Entry<String, JSONArray> entry = TODOsIter.next();
+			String storageID = entry.getKey();
+			JSONArray opts = entry.getValue();
+			optsTODO.put(storageID, opts);
+		}
+		return optsTODO;
 	}
 	
 	public void loadLocalLogs() {
@@ -419,6 +447,10 @@ public class NameNode {
 	}
 	
 	public void showActiveDataNodes(){
+		if (activeDatanodeID.isEmpty()) {
+			System.out.println("当前没有活动的DataNode!!");
+			return;
+		}
 		for (int i=0; i<activeDatanodeID.size(); i++) {
 			System.out.println("DataNode " +i 
 					+ activeDataNodes.get(activeDatanodeID.get(i)));
