@@ -250,6 +250,12 @@ public class NameNodeService {
 						nameNode.commitFileConstruction(fileName);
 						outStream.write("done".getBytes());
 					}
+					// 取消创建
+					if (recvMsg.startsWith("cancelFile")) {
+						String fileName = recvMsg.substring("cancelFile".length()).trim();
+						nameNode.removeUCFile(fileName);
+						outStream.write("done".getBytes());
+					}
 					// 文件列表
 					if (recvMsg.equals(MiniHDFSConstants.LSFILES)) {
 						JSONObject filesList = nameNode.getStoredFiles();

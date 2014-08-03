@@ -56,12 +56,18 @@ public class BlockTransfer {
 		JSONArray targets;
 		JSONObject targetDN;
 		
+		String client;
+		int blkACKPort;
+		
 		public SendBlockThread(JSONObject locatedBlock) {
 			blkID = locatedBlock.getString("blockId");
 			targets = locatedBlock.getJSONArray("targets");
 			int curIndex = locatedBlock.getInt("curIndex");
 			System.err.println("当前包"+blkID+"第"+curIndex+"个副本");
 			targetDN = targets.getJSONObject(curIndex);
+			
+			client = locatedBlock.getString("clientAddr");
+			blkACKPort = locatedBlock.getInt("blkAckPort");
 		}
 		
 		public void run() {
@@ -118,8 +124,25 @@ public class BlockTransfer {
 					}
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				// TODO 异常，说明DataNode荡了，做处理，通知Client和NameNode
+//				e.printStackTrace();
+				
+				
+				
+				try {
+					Socket sc = new Socket();
+					sc.connect(new InetSocketAddress(client, blkACKPort));
+					OutputStream oStream = sc.getOutputStream();
+					JSONObject json = new JSONObject();
+					json.put("ackBlockNum", -1);
+					oStream.write(json.toString().getBytes());
+					oStream.flush();
+					oStream.close();
+					sc.close();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 			
 			

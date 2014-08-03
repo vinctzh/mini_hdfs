@@ -29,4 +29,11 @@ public class FileHelper {
     	
     	return true;
     }
+    
+    public static boolean fileExists(String filePath) {
+    	File file = new File(filePath);
+    	if (file.isFile() && file.exists())
+    		return true;
+    	return false;
+    }
 }

@@ -169,6 +169,47 @@ public class NameNode {
 		return false;
 	}
 	
+	public boolean removeUCFile(String filename) {
+		if (filesUnderConstruction.containsKey(filename)) {
+			return removeUCFileInternal(filename);
+		} 
+		return false;
+	}
+	
+	private boolean removeUCFileInternal(String filename) {
+		if (filesUnderConstruction.containsKey(filename)) {
+			JSONObject fileDetail = getFileDetail(filename);
+			JSONArray blocks = fileDetail.getJSONArray("blocks");
+			
+			if (blocks.size() <= 0) {
+				return false;
+			}
+			
+			for (int i=0;i < blocks.size();i++) {
+				JSONObject block = blocks.getJSONObject(i);
+				long blockId = block.getLong("blockId");
+				JSONArray targets = block.getJSONArray("targets");
+				for (int j=0; j<targets.size(); j++) {
+					JSONObject target = targets.getJSONObject(j);
+					String storageID = target.getString("storageId");
+					JSONArray opts = new JSONArray();
+					JSONObject opt = new JSONObject();
+					opt.put("opt", "rmblock");
+					opt.put("object", blockId);
+					opts.add(opt);
+					addOptsTODO(storageID, opts);
+				}
+			}
+			filesUnderConstruction.remove(filename);
+			removeDetailFile(filename);
+			showOptTODOLogs() ;
+			updateNNLog();
+			return true;
+		} 
+		return false;
+	}
+	
+	
 	private boolean removeFileInternal(String filename) {
 		if (files.containsKey(filename)) {
 			JSONObject fileDetail = getFileDetail(filename);
@@ -260,6 +301,18 @@ public class NameNode {
 		return false;
 	}
 	
+	public boolean cancelFileConstruction(String filename) {
+		if (filesUnderConstruction.containsKey(filename)) {
+			
+			filesUnderConstruction.remove(filename);
+			showFiles();
+			showUCFiles();
+			updateNNLog();
+			
+			return true;
+		}
+		return false;
+	}
 	public void updateNNLog() {
 		// 备份当前的文件
 		long curTime = System.currentTimeMillis();

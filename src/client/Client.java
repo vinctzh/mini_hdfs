@@ -3,6 +3,7 @@ package client;
 import java.util.Scanner;
 
 import namenode.NameNodeService.ClientConnection;
+import common.FileHelper;
 import common.MiniHDFSConstants;
 
 public class Client {
@@ -30,7 +31,13 @@ public class Client {
 				}
 				System.out.println("请出入你要添加的文件路径：");
 				String localFilePath = sc.next();
-				operations.addFile(localFilePath);
+				String filePath = Client.CLIENT_ROOT + localFilePath;
+				if (FileHelper.fileExists(filePath)) {
+					operations.addFile(localFilePath);
+				} else {
+					System.err.println("文件不存在～～");
+				}
+				
 				System.out.println("继续操作");
 			} else if(opt.equals(MiniHDFSConstants.LSFILES))  {
 				System.out.println("列出MiniHDFS上的所有文件：");

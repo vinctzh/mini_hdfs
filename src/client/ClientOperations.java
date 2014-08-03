@@ -111,7 +111,7 @@ public class ClientOperations {
 				String fileName = file.getString("filename");
 				long fSize = file.getLong("fileSize");
 				String fileSize = String.valueOf(fSize);
-				System.out.printf("->%20s\t%16s", fileName,fileSize );
+				System.out.printf("->%20s\t%16s\n", fileName,fileSize );
 			}
 		}
 	}
@@ -189,6 +189,42 @@ public class ClientOperations {
 		}
 	}
 	
+	public void cancelAddFile(String filename) {
+		System.out.println("取消添加文件" + filename);
+		Socket socket = new Socket();
+		try {
+			socket.connect(new InetSocketAddress(MiniHDFSConstants.SERVER, MiniHDFSConstants.SERVER_PORT4CLIENT));
+			OutputStream outStream = socket.getOutputStream();
+			InputStream inputStream = socket.getInputStream();
+			byte buffer[] = new byte[1024];
+			int len;
+			while (true) {
+				len = inputStream.read(buffer);
+				if (len <= 0) {
+					System.out.println("结束");
+					break;
+				} else  {
+					String recv = new String(buffer, 0, len);
+					if (recv.equals("Welcome !")) {
+						outStream.write(("cancelFile "+ filename).getBytes());	
+					}
+					if (recv.equals("done")) {
+						System.out.println("结束");
+						outStream.close();
+						inputStream.close();
+						socket.close();
+						break;
+					}
+				}
+			
+			}
+			Client.add_file_locked = false;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
 	public boolean removeFile(String filename) {
 		Socket client = new Socket(); 
 		boolean result =false;
@@ -361,6 +397,7 @@ public class ClientOperations {
 		
 		ServerSocket serverSocket;
 		DistributeFileThread distributeFileThread;
+		String ackFileName;
 		
 		public BlockACKThread() {
 			this.distributeFileThread = null;
@@ -395,6 +432,14 @@ public class ClientOperations {
 			this.distributeFileThread = distributeFileThread;
 		}
 		
+		public String getAckFileName() {
+			return ackFileName;
+		}
+
+		public void setAckFileName(String ackFileName) {
+			this.ackFileName = ackFileName;
+		}
+
 		public void run() {
 			
 			if (serverSocket != null) {
@@ -411,12 +456,17 @@ public class ClientOperations {
 							String recv = new String(buffer);
 							System.out.println("-->ack message received: " + recv);
 							JSONObject json = JSONObject.fromObject(recv);
-							
 							int ackBlkNum = json.getInt("ackBlockNum");
-							distributeFileThread.setSentBlockNum(ackBlkNum+1);
-							distributeFileThread.distributeFile();
-							inputStream.close();
-							socket.close();
+							if (ackBlkNum < 0) { //一般为-1， 
+								System.err.println("ack -1 recevied");
+								cancelAddFile(ackFileName);
+							} else {
+								distributeFileThread.setSentBlockNum(ackBlkNum+1);
+								distributeFileThread.distributeFile();
+								inputStream.close();
+								socket.close();
+							}
+							
 						}
 						
 					} catch (IOException e) {
@@ -429,10 +479,11 @@ public class ClientOperations {
 	}
 	
 	public class AddNewFile extends Thread {
-		
+		private String fileName;
 		private String localFilePath;
 		public AddNewFile(String filePath) {
 			this.localFilePath = Client.CLIENT_ROOT + filePath;
+			this.fileName = filePath;
 		}
 
 		public void run() {
@@ -490,7 +541,7 @@ public class ClientOperations {
 								distributeFileThread.distributeFile();
 //								new BlockACKThread(distributeFileThread).start();
 								blockACKThread.setDistributeFileThread(distributeFileThread);
-								
+								blockACKThread.setAckFileName(fileName);
 							}
 						}
 					}
