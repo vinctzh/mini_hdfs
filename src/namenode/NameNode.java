@@ -49,8 +49,10 @@ public class NameNode {
 	
 	public boolean initialNN() {
 		loadLocalLogs();
+		loadTODOLogs();
 		showFiles();
 		showUCFiles();
+		showOptTODOLogs();
 		return true;
 	}
 	
@@ -166,6 +168,10 @@ public class NameNode {
 		if (files.containsKey(filename)) {
 			return removeFileInternal(filename);
 		} 
+		
+		if (filesUnderConstruction.containsKey(filename)) {
+			return removeUCFile(filename);
+		}
 		return false;
 	}
 	
@@ -378,6 +384,24 @@ public class NameNode {
 			optsTODO.put(storageID, opts);
 		}
 		return optsTODO;
+	}
+	
+	public void loadTODOLogs() {
+		String filePath = NAMENODE_ROOT + "optTODOs.log";
+		optTODOLogs = new HashMap<String, JSONArray>();
+		try {
+			String optsLogs = FileHelper.loadFileIntoString(filePath, "UTF-8");
+			JSONObject optslog = JSONObject.fromObject(optsLogs);
+			Iterator<String> keyIter = optslog.keys();
+			while (keyIter.hasNext()) {
+				String key = keyIter.next();
+				JSONArray optsArray = optslog.getJSONArray(key);
+				optTODOLogs.put(key, optsArray);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void loadLocalLogs() {
