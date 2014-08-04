@@ -22,7 +22,9 @@ public class NameNodeService {
 	public NameNodeService() {
 		ServiceForClientThread serviceForClientThread = new ServiceForClientThread();
 		serviceForClientThread.start();
-		
+	}
+	
+	public void start() {
 		new ServiceForDataNode().start();
 	}
 	
@@ -55,10 +57,9 @@ public class NameNodeService {
 						Socket socket = serverSocket.accept();
 						
 						new DNConnectionHandler(socket).start();
-						if (MiniHDFSConstants.doDebug) {
-							System.out.println("A new connection with DataNode is established:" + socket.toString());
-							System.out.println("ip:" + socket.getLocalAddress().getHostAddress());
-						}
+						
+						System.out.println("A new connection with DataNode is established:" + socket.toString());
+						System.out.println("ip:" + socket.getLocalAddress().getHostAddress());
 						
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -100,7 +101,7 @@ public class NameNodeService {
 						break;
 					}
 					String recvMsg = new String(buffer, 0, len);
-					System.out.println("msg from " + dataNodeId + ": "+recvMsg);
+//					System.out.println("msg from " + dataNodeId + ": "+recvMsg);
 					if (recvMsg.startsWith("regist")) {
 						String data = recvMsg.substring("regist".length()).trim();
 						
@@ -226,8 +227,8 @@ public class NameNodeService {
 						return ;
 					}
 					String  recvMsg = new String(buffer, 0, len);
-					if (MiniHDFSConstants.doDebug)
-						System.out.println("Received msg: "+recvMsg);
+//					if (MiniHDFSConstants.doDebug)
+//						System.out.println("Received msg: "+recvMsg);
 					if (recvMsg.startsWith(MiniHDFSConstants.ADDFILE)) {
 						LocalFileDescription locaFile = getLocalFileData(recvMsg.substring(3).trim());
 						BlockInfo[] blocks = nameNode.addFile(locaFile);
@@ -259,7 +260,8 @@ public class NameNodeService {
 					// 文件列表
 					if (recvMsg.equals(MiniHDFSConstants.LSFILES)) {
 						JSONObject filesList = nameNode.getStoredFiles();
-						System.out.println(filesList.toString());
+						if (MiniHDFSConstants.doDebug) 
+							System.out.println(filesList.toString());
 						outStream.write(("StoredFiles "+ filesList.toString()).getBytes());
 
 					}
@@ -276,9 +278,9 @@ public class NameNodeService {
 						boolean success = nameNode.removeFile(fileName);
 						String msg;
 						if (success)
-							msg = "OK NameNode已经收到删除请求，正在努力删除文件!";
+							msg = "OK NameNode! delete request received! ";
 						else
-							msg = "Failure 删除请求失败！请检查输入的文件是否存在，确保他不是正在创建中的文件!";
+							msg = "Failure fail to delete file! Are you sure that the file exists?";
 						
 						outStream.write(("removeResult "+msg).getBytes());
 					}

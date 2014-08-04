@@ -13,6 +13,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.print.attribute.standard.Finishings;
 import javax.xml.ws.handler.MessageContext.Scope;
 
 import client.BlockTransfer;
@@ -53,16 +54,28 @@ public class DataNodeDameon {
 			String dir = json.optString("storageDir");
 			if (dir != null)
 				dataNode.setStorageDir(dir);
+			
+			String storageDir = dataNode.getStorageDir();
+			
+			if (!validAndMkdirs(storageDir))
+				System.err.println("Fail to initialize storage directory! Check and try again!");
 			int blkPort = json.optInt("blkPort");
 			if (blkPort != 0) 
 				dataNode.setBlkPort(blkPort);
 			
 			this.dataNode = dataNode;
 		} catch (IOException e) {
+			System.err.println("Fail to initialize storage directory! Check and try again!");
 			e.printStackTrace();
 		}
 	}
-	
+	public boolean validAndMkdirs(String storageDir) {
+		File st_dir = new File(storageDir);
+		if (!st_dir.exists())
+			return st_dir.mkdirs();
+		else 
+			return true;
+	}
 	public void start() {
 		//new NameNodeConnectionThread().start();
 		nnComConnectionThread.start();
@@ -129,7 +142,7 @@ public class DataNodeDameon {
 				while (true) {
 					len = inputStream.read(buffer);
 					if (len <= 0) {
-						System.err.println("连接已经断开");
+//						System.err.println("连接已经断开");
 						inputStream.close();
 						outputStream.close();
 						receiveSocket.close();
@@ -137,7 +150,8 @@ public class DataNodeDameon {
 					}
 					
 					String recvStr = new String(buffer, 0, len);
-					System.out.println("get string from client  "+recvStr);
+					if (MiniHDFSConstants.doDebug)
+						System.out.println("get string from client  "+recvStr);
 					if (recvStr.startsWith("putBlock")) {
 						
 						String subStr = recvStr.substring("putBlock".length()).trim();
@@ -155,7 +169,8 @@ public class DataNodeDameon {
 							fos.write( data );
 							count++;
 						}
-						System.out.println("\nFile has been recerved successfully." + count);
+						if (MiniHDFSConstants.doDebug)
+							System.out.println("\nFile has been received successfully." + count);
 
 						fos.close();
 						outputStream.write("done".getBytes());
@@ -174,12 +189,15 @@ public class DataNodeDameon {
 						// 这个节点不是最后一个节点
 						if (curIndex < (replication-1)) {	// curIndex从0开始计数
 							blkInfo.put("curIndex", curIndex+1);
-							System.out.println("向" + (curIndex+1) + "的数据节点发包");
-							System.out.println(""+blkInfo.getInt("curIndex"));
+							if (MiniHDFSConstants.doDebug) {
+								System.out.println("向" + (curIndex+1) + "的数据节点发包");
+								System.out.println(""+blkInfo.getInt("curIndex"));
+							}
 							BlockTransfer blkTransfer = new BlockTransfer(blkInfo, dataNode.getStorageDir(), "meta");
 							blkTransfer.sendBlock();
 						} else {
-							System.out.println("最后一个replication了：" + curIndex);
+							if (MiniHDFSConstants.doDebug) 
+								System.out.println("最后一个replication了：" + curIndex);
 							// 最后一个节点，向Client 发送ack数据
 							String client = blkInfo.getString("clientAddr");
 							int ackPort = blkInfo.getInt("blkAckPort");
@@ -219,7 +237,6 @@ public class DataNodeDameon {
 						break;
 					}
 				}
-				System.out.println("循环结束");
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -294,6 +311,8 @@ public class DataNodeDameon {
 				
 			} catch (IOException e) {
 				e.printStackTrace();
+				
+				System.out.println("NameNode没有启动，稍后再试>-<");
 			}
 			
 		}

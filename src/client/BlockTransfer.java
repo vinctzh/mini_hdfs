@@ -7,7 +7,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-import common.MiniHDFSConstants;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -73,7 +72,7 @@ public class BlockTransfer {
 		public void run() {
 			System.out.println("SendBlockThread 开始run " );
 			byte buffer[] = new byte[1024];
-			
+			System.err.println("target datanode: " + targetDN.toString()); 
 			Socket socket = connect(targetDN);
 			try {
 				InputStream inStream = socket.getInputStream();
@@ -126,8 +125,6 @@ public class BlockTransfer {
 			} catch (IOException e) {
 				// TODO 异常，说明DataNode荡了，做处理，通知Client和NameNode
 //				e.printStackTrace();
-				
-				
 				
 				try {
 					Socket sc = new Socket();

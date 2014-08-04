@@ -1,0 +1,4 @@
+{
+    "nnroot": "/home/jianyuan/namenode/", 
+    "blkSizeDefault": 6291456
+}

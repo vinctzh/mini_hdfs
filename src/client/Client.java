@@ -1,23 +1,43 @@
 package client;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Scanner;
 
 import namenode.NameNodeService.ClientConnection;
+import net.sf.json.JSONObject;
 import common.FileHelper;
 import common.MiniHDFSConstants;
 
 public class Client {
 	
-	public static final String CLIENT_ROOT = "/home/jianyuan/";
-	public static final String CLIENT_CACHE = "/home/jianyuan/cache/";
-	public static final String CLIENT_DOWNLOAD = "/home/jianyuan/fromHDFS/";
+	public static String CLIENT_ROOT = "/home/jianyuan/";
+	public static String CLIENT_CACHE = "/home/jianyuan/cache/";
+	public static String CLIENT_DOWNLOAD = "/home/jianyuan/fromHDFS/";
 
 	
 	public static boolean add_file_locked = false;
 	
 	public static void main(String[] args) {
+		
+		if (args.length != 1) {
+			System.err.println("Uage: Client [local config file]\n\t eg: Client clientconfig.txt");
+			return;
+		}
+		try {
+			String configStr = FileHelper.loadFileIntoString(args[0], "UTF-8");
+			JSONObject configJSON = JSONObject.fromObject(configStr);
+			CLIENT_ROOT = configJSON.getString("root");
+			CLIENT_CACHE = configJSON.getString("cache");
+			CLIENT_DOWNLOAD = configJSON.getString("download");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		} 
+		
+		
 		ClientOperations operations = new ClientOperations();
-		boolean isConnected = false; 
 		Scanner sc = new Scanner(System.in);
 		
 		while (true) {
@@ -62,8 +82,6 @@ public class Client {
 			} else {
 				System.out.println(opt + "不是合法命令");
 			}
-			
-			
 		}
 	}
 

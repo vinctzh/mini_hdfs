@@ -378,8 +378,8 @@ public class ClientOperations {
 				blksinfo.put("clientAddr", localHost);
 				blksinfo.put("blkAckPort", MiniHDFSConstants.CLIENT_BLK_ACK_PORT);
 				blksinfo.put("blkIndex", sentBlockNum);
-				
-				System.out.println("located Blockinfo " + blksinfo.toString());
+				if (MiniHDFSConstants.doDebug) 
+					System.out.println("located Blockinfo " + blksinfo.toString());
 				sendBlocks(blksinfo, sentBlockNum);
 				
 				
@@ -456,12 +456,27 @@ public class ClientOperations {
 							continue;
 						} else {
 							String recv = new String(buffer);
-							System.out.println("-->ack message received: " + recv);
+							if (MiniHDFSConstants.doDebug) 
+								System.out.println("-->ack message received: " + recv);
 							JSONObject json = JSONObject.fromObject(recv);
 							int ackBlkNum = json.getInt("ackBlockNum");
 							if (ackBlkNum < 0) { //一般为-1， 
 								System.err.println("ack -1 recevied");
 								cancelAddFile(ackFileName);
+								File blkInfosLocal = new File(Client.CLIENT_CACHE + ackFileName + ".blksinfo");
+								
+								JSONObject blkInfoJSON = JSONObject.fromObject(FileHelper.loadFileIntoString(Client.CLIENT_CACHE + ackFileName + ".blksinfo", "UTF-8"));
+								JSONArray blocks = blkInfoJSON.getJSONArray("blocks");
+								int blkNums = blkInfoJSON.getInt("blockNum");
+								if (blkInfosLocal.isFile() && blkInfosLocal.exists())
+									blkInfosLocal.delete();
+								
+								for (int i=0;i<blkNums;i++) {
+									String blkCachePath = Client.CLIENT_CACHE + blocks.getJSONObject(i).getString("blockId") + ".cache";
+									File tmp = new File(blkCachePath);
+									if (tmp.isFile() && tmp.exists())
+										tmp.delete();
+								}
 							} else {
 								distributeFileThread.setSentBlockNum(ackBlkNum+1);
 								distributeFileThread.distributeFile();
@@ -517,12 +532,14 @@ public class ClientOperations {
 						String recv = new String(buffer,0,len);
 
 						if (recv.equals("done")) {
-							System.out.println("断开连接");
+							if (MiniHDFSConstants.doDebug) 
+								System.out.println("断开连接");
 							inStream.close();
 							socket.close();
 							break;
 						} else if (recv.startsWith("locatedBlks")){
-							System.out.println(recv);
+							if (MiniHDFSConstants.doDebug) 
+								System.out.println(recv);
 							String recvData = recv.substring("locatedBlks".length()).trim();
 							JSONObject blksInfo = JSONObject.fromObject(recvData);
 							int blkNums = blksInfo.getInt("blockNum");

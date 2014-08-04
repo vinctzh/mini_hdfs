@@ -1,32 +1,31 @@
 package namenode;
 
-import java.awt.Stroke;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.sql.Date;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ArrayBlockingQueue;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+
 import common.FileHelper;
 import common.LocalFileDescription;
+
 import datanode.DataNodeDescriptor;
 
 public class NameNode {
 	
-	private final String NAMENODE_ROOT = "/home/jianyuan/namenode/";
+	public static String NAMENODE_ROOT = "/home/jianyuan/namenode";
 	public static long DEFAULT_BLOCK_SIZE = 6291456;//0;  // 60M
+	
 	BlockManager blockManager;
 	
-	// 当前活跃的数据节点的 ID
+	// 当前活跃的	数据节点的 ID
 	public static List<String> activeDatanodeID; 	// storageID
 	// 当前活跃的数据节点<DatanodeID, DataNode>
 	public static HashMap<String, DataNodeDescriptor> activeDataNodes;
@@ -86,7 +85,7 @@ public class NameNode {
 			showBlockInfo(blocks[i]);
 		}
 		JSONObject fileBlkInfos = NameNodeService.blkInfoToJsonData(blocks, replication);
-		String fileInfoPath = this.NAMENODE_ROOT + "/details/" + fileName + ".detail";
+		String fileInfoPath = NAMENODE_ROOT + "/details/" + fileName + ".detail";
 		FileHelper.saveStringIntoFile(fileInfoPath, fileBlkInfos.toString());
 		filesUnderConstruction.put(fileName, iFileUC);
 		showFiles();
@@ -149,9 +148,11 @@ public class NameNode {
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return new JSONObject();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return new JSONObject();
 		}
 		return fileDetail;
 	}
@@ -185,6 +186,9 @@ public class NameNode {
 	private boolean removeUCFileInternal(String filename) {
 		if (filesUnderConstruction.containsKey(filename)) {
 			JSONObject fileDetail = getFileDetail(filename);
+			if (fileDetail == null || fileDetail.isEmpty()) {
+				return false;
+			}
 			JSONArray blocks = fileDetail.getJSONArray("blocks");
 			
 			if (blocks.size() <= 0) {
@@ -400,18 +404,15 @@ public class NameNode {
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
+			System.err.println("optTODOs.log不存在！");
 		}
 	}
 	
 	public void loadLocalLogs() {
 		try {
 			String filesLog = FileHelper.loadFileIntoString(NAMENODE_ROOT + "files.log", "UTF-8");
-			String filesUCLog = FileHelper.loadFileIntoString(NAMENODE_ROOT + "filesUC.log", "UTF-8");
-
 			JSONObject filesLogJSON = JSONObject.fromObject(filesLog) ;
-			JSONObject filesUCLogJSON = JSONObject.fromObject(filesUCLog);
-			
 			if (filesLogJSON.isEmpty()) {
 				files = new HashMap<String, INodeFile>();
 			} else {
@@ -426,6 +427,20 @@ public class NameNode {
 				}
 			}
 			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			files =  new HashMap<String, INodeFile>();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			files =  new HashMap<String, INodeFile>();
+		}
+			
+		try {
+			String filesUCLog = FileHelper.loadFileIntoString(NAMENODE_ROOT + "filesUC.log", "UTF-8");
+			JSONObject filesUCLogJSON = JSONObject.fromObject(filesUCLog);
+			
 			if (filesUCLogJSON.isEmpty()) {
 				filesUnderConstruction = new HashMap<String, INodeFileUnderConstruction>();
 			} else {
@@ -439,14 +454,18 @@ public class NameNode {
 					filesUnderConstruction.put(fileName, new INodeFileUnderConstruction(fileName, (short)replication, fileSize));
 				}
 			}
-			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
+			filesUnderConstruction =  new HashMap<String, INodeFileUnderConstruction>();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
+			filesUnderConstruction =  new HashMap<String, INodeFileUnderConstruction>();
 		}
+			
+			
+		
 		
 	}
 	
